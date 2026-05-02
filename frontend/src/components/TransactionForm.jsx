@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api/axios.js';
 
+// ============================================================
+// FILE: components/TransactionForm.jsx
+// PURPOSE: Form for adding and editing transactions
+// PHASE: UI Update
+// CHANGES: Added documentation for onSuccess callback usage
+// ============================================================
+
 const initialState = {
   description: '',
   amount: 0,
@@ -8,6 +15,12 @@ const initialState = {
   date: new Date().toISOString().slice(0, 10),
 };
 
+// FUNCTION: TransactionForm()
+// PURPOSE: Renders a form for creating or editing a transaction
+// PARAMS:
+//   transaction (object|null) — transaction to edit, or null for new
+//   onSuccess (function)      — [UI UPDATE ADDED] called after successful save
+// RETURNS: Form element with inputs and validation
 const TransactionForm = ({ transaction, onSuccess }) => {
   const [formState, setFormState] = useState(initialState);
   const [error, setError] = useState('');
@@ -38,6 +51,8 @@ const TransactionForm = ({ transaction, onSuccess }) => {
         await api.post('/api/transactions', formState);
       }
       setFormState(initialState);
+      // [UI UPDATE ADDED] Call onSuccess callback after successful save
+      // This tells parent component (Dashboard) to close modal and refresh
       onSuccess();
     } catch (requestError) {
       setError(requestError.response?.data?.message || 'Failed to save transaction.');

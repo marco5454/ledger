@@ -1,25 +1,110 @@
-import TransactionItem from './TransactionItem.jsx';
+// ============================================================
+// FILE: components/TransactionList.jsx
+// PURPOSE: Renders transactions in a clean table layout
+// PHASE: UI Update
+// CHANGES: Converted from card layout to table-based display
+// ============================================================
+
+import { useContext } from 'react';
+import { AuthContext } from '../context/AuthContext.jsx';
+import { CURRENCY_SYMBOLS } from '../utils/constants.js';
+import '../styles/TransactionTable.css';
+
+// FUNCTION: TransactionList()
+// PURPOSE: Renders all transactions as a formatted table
+// PARAMS:
+//   transactions (array)  — list of transaction objects
+//   onEdit (function)     — called with transaction object on edit
+//   onDelete (function)   — called with transaction._id on delete
+// RETURNS: Table element with all transactions, or empty state
 
 const TransactionList = ({ transactions, onEdit, onDelete }) => {
+  const { currency } = useContext(AuthContext);
+  const symbol = CURRENCY_SYMBOLS[currency] || '₱';
+
+  // [UI UPDATE ADDED] Empty state handling
   if (!transactions.length) {
-    return <p className="empty-state">No transactions recorded yet.</p>;
+    return (
+      <div className="empty-state-container">
+        <p className="empty-state">No transactions yet.</p>
+      </div>
+    );
   }
 
+  // [UI UPDATE ADDED] Render as table instead of card list
   return (
-    <div className="list-card">
-      <h2>Transactions</h2>
-      <div className="transaction-list">
-        {transactions.map((transaction) => (
-          <TransactionItem
-            key={transaction._id}
-            transaction={transaction}
-            onEdit={() => onEdit(transaction)}
-            onDelete={() => onDelete(transaction._id)}
-          />
-        ))}
-      </div>
-    </div>
+    <table className="transactions-table">
+      {/* [UI UPDATE ADDED] Table header */}
+      <thead>
+        <tr>
+          <th className="col-date">Date</th>
+          <th className="col-description">Description</th>
+          <th className="col-type">Type</th>
+          <th className="col-amount">Amount</th>
+          <th className="col-actions">Actions</th>
+        </tr>
+      </thead>
+
+      {/* [UI UPDATE ADDED] Table body with transaction rows */}
+      <tbody>
+        {transactions.map((transaction) => {
+          const dateString = transaction.date
+            ? new Date(transaction.date).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+              })
+            : 'Unknown';
+
+          const isIncome = transaction.type === 'income';
+          const amountClass = isIncome ? 'positive' : 'negative';
+
+          return (
+            <tr key={transaction._id} className="transaction-row">
+              {/* Date cell */}
+              <td className="col-date">{dateString}</td>
+
+              {/* Description cell */}
+              <td className="col-description">{transaction.description}</td>
+
+              {/* Type badge cell */}
+              <td className="col-type">
+                <span className={`type-badge ${transaction.type}`}>
+                  {isIncome ? 'Income' : 'Expense'}
+                </span>
+              </td>
+
+              {/* Amount cell */}
+              <td className={`col-amount ${amountClass}`}>
+                {symbol}{transaction.amount.toFixed(2)}
+              </td>
+
+              {/* Actions cell */}
+              <td className="col-actions">
+                <button
+                  type="button"
+                  className="action-btn edit-btn"
+                  onClick={() => onEdit(transaction)}
+                  title="Edit transaction"
+                >
+                  ✏️
+                </button>
+                <button
+                  type="button"
+                  className="action-btn delete-btn"
+                  onClick={() => onDelete(transaction._id)}
+                  title="Delete transaction"
+                >
+                  🗑️
+                </button>
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
   );
 };
 
 export default TransactionList;
+

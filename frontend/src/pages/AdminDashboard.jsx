@@ -78,6 +78,21 @@ const AdminDashboard = () => {
     navigate(`/admin/users/${userId}`);
   };
 
+  const handleRoleChange = async (userId, currentRole) => {
+    const newRole = currentRole === 'admin' ? 'user' : 'admin';
+    if (!window.confirm(`Change user role to ${newRole}?`)) {
+      return;
+    }
+
+    try {
+      await api.patch(`/api/admin/users/${userId}/role`, { role: newRole });
+      await fetchDashboardData();
+    } catch (err) {
+      console.error('Error updating role:', err);
+      alert('Failed to update user role');
+    }
+  };
+
   // [ADMIN SEARCH-SORT ADDED]
   // FUNCTION: handleSort()
   // PURPOSE: Toggles sort direction if same column clicked,
@@ -309,6 +324,13 @@ const AdminDashboard = () => {
                     </td>
                     <td>
                       <div className="action-buttons">
+                        <button
+                          onClick={() => handleRoleChange(user._id, user.role)}
+                          className="btn-role-switch"
+                          title={`Switch to ${user.role === 'admin' ? 'user' : 'admin'}`}
+                        >
+                          ⇄
+                        </button>
                         <button
                           onClick={() => handleViewUser(user._id)}
                           className="btn-view"

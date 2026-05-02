@@ -14,7 +14,8 @@ const adminMiddleware = require('../middleware/adminMiddleware');
 const {
   getAllUsers,
   getUserTransactions,
-  getStats             // [ADMIN UPDATE ADDED]
+  getStats,            // [ADMIN UPDATE ADDED]
+  updateUserRole       // [ROLE SWITCH ADDED]
 } = require('../controllers/adminController');
 
 const router = express.Router();
@@ -40,5 +41,11 @@ router.get('/users/:id/transactions', getUserTransactions);
 // ACCESS: Admin only
 // PURPOSE: Platform overview numbers for stats cards
 router.get('/stats', getStats);
+
+// [ROLE SWITCH ADDED]
+// ROUTE: PATCH /api/admin/users/:id/role
+// ACCESS: Admin only
+// PURPOSE: Update a user's role between 'user' and 'admin'
+router.patch('/users/:id/role', updateUserRole);
 
 module.exports = router;

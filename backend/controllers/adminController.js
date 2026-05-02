@@ -188,3 +188,26 @@ exports.getUserTransactions = async (req, res) => {
     });
   }
 };
+
+exports.updateUserRole = async (req, res) => {
+  try {
+    const { role } = req.body;
+    
+    if (!role || (role !== 'user' && role !== 'admin')) {
+      return res.status(400).json({ message: 'Invalid role. Must be "user" or "admin"' });
+    }
+
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    user.role = role;
+    await user.save();
+
+    res.json({ message: 'User role updated successfully', user: { _id: user._id, role: user.role } });
+  } catch (error) {
+    console.error('[updateUserRole] Error:', error.message);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};

@@ -1,71 +1,69 @@
 /* ============================================================
-   FILE: styles/TransactionTable.css
-   PURPOSE: Styling for transaction table layout
-   PHASE: UI Update
+   TRANSACTION TABLE STYLES - UI STANDARDIZATION
+   Design System: Classic Professional Desktop UI
    ============================================================ */
 
 .transactions-table {
   width: 100%;
   border-collapse: collapse;
   background-color: white;
-  border-radius: 6px;
+  border: 2px inset #d0d0d0;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-/* Table header styling */
+/* Table Header */
 .transactions-table thead {
   background-color: #f5f5f5;
-  border-bottom: 2px solid #e0e0e0;
+  border-bottom: 2px solid #d0d0d0;
 }
 
 .transactions-table thead th {
   padding: 12px 16px;
   text-align: left;
   font-weight: 600;
-  color: #666;
+  color: #333;
   font-size: 0.875rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-/* [SORT-MONTHLY ADDED] Sortable header styling */
+/* Sortable Headers */
 .sortable-header {
   cursor: pointer;
   user-select: none;
-  transition: color 0.2s ease;
+  transition: background-color 0.2s ease;
 }
 
 .sortable-header:hover {
-  color: #333;
   background-color: #e8e8e8;
+  color: #1a1a1a;
 }
 
-/* Table body rows */
+/* Table Body */
 .transactions-table tbody tr {
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid #e0e0e0;
   transition: background-color 0.2s ease;
 }
 
 .transactions-table tbody tr:hover {
-  background-color: #fafafa;
+  background-color: #f5f5f5;
 }
 
 .transactions-table tbody tr:last-child {
   border-bottom: none;
 }
 
-/* Table cells */
+/* Table Cells */
 .transactions-table td {
   padding: 12px 16px;
   color: #333;
   font-size: 0.95rem;
 }
 
-/* Column width definitions */
+/* Column Definitions */
 .col-date {
   width: 120px;
-  color: #999;
+  color: #666;
   font-size: 0.85rem;
 }
 
@@ -77,7 +75,6 @@
   white-space: nowrap;
 }
 
-/* [CAT-PAGE ADDED] Category column */
 .col-category {
   width: 140px;
   color: #666;
@@ -91,16 +88,16 @@
 .col-amount {
   width: 120px;
   text-align: right;
-  font-weight: 500;
+  font-weight: 600;
   font-family: 'Courier New', monospace;
 }
 
 .col-amount.positive {
-  color: #27ae60;
+  color: #81912F;
 }
 
 .col-amount.negative {
-  color: #e74c3c;
+  color: #E03F4F;
 }
 
 .col-actions {
@@ -108,69 +105,75 @@
   text-align: center;
 }
 
-/* Type badge styling */
+/* Type Badge */
 .type-badge {
   display: inline-block;
   padding: 4px 10px;
-  border-radius: 12px;
+  border: 2px outset #d0d0d0;
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: capitalize;
   letter-spacing: 0.5px;
+  background-color: white;
 }
 
 .type-badge.income {
-  background-color: #e8f5e9;
-  color: #27ae60;
+  background-color: #81912F;
+  color: white;
+  border-color: #6d7a28;
 }
 
 .type-badge.expense {
-  background-color: #ffebee;
-  color: #e74c3c;
+  background-color: #E03F4F;
+  color: white;
+  border-color: #c73545;
 }
 
-/* Action buttons */
+/* Action Buttons */
 .action-btn {
-  background: none;
-  border: none;
+  background: #f5f5f5;
+  border: 2px outset #d0d0d0;
   cursor: pointer;
   padding: 6px 8px;
   font-size: 1rem;
-  border-radius: 4px;
   transition: all 0.2s ease;
   margin: 0 2px;
 }
 
 .action-btn:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: #e8e8e8;
+}
+
+.action-btn:active {
+  border-style: inset;
 }
 
 .edit-btn:hover {
-  color: #2196f3;
+  color: #F8C463;
 }
 
 .delete-btn:hover {
-  color: #e74c3c;
+  color: #E03F4F;
 }
 
-/* Empty state */
+/* Empty State */
 .empty-state-container {
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 3rem 2rem;
-  background-color: #fafafa;
-  border-radius: 6px;
-  border: 1px solid #f0f0f0;
+  background-color: #f5f5f5;
+  border: 2px inset #d0d0d0;
 }
 
 .empty-state {
-  color: #999;
+  color: #666;
   font-size: 1rem;
   margin: 0;
+  font-style: italic;
 }
 
-/* Responsive design */
+/* Responsive Design */
 @media (max-width: 768px) {
   .transactions-table {
     font-size: 0.85rem;

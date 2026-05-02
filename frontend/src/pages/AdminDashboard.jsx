@@ -1,281 +1,323 @@
-// ============================================================
-// FILE: pages/AdminDashboard.jsx
-// PURPOSE: Admin's main view — shows all registered users
-// PHASE: 2 (new)
-// DEPENDENCIES: axios instance, AuthContext, React Router
-// ============================================================
-
-// [ADMIN UPDATE MODIFIED] Add CURRENCY_SYMBOLS import
-import { useContext, useEffect, useState } from 'react';
+// [ADMIN SEARCH-SORT MODIFIED]
+import { useState, useEffect, useMemo } from 'react'; // [ADMIN SEARCH-SORT ADDED] useMemo
 import { useNavigate } from 'react-router-dom';
-import { api } from '../api/axios.js';
-import { AuthContext } from '../context/AuthContext.jsx';
-import Navbar from '../components/Navbar.jsx';
-import { CURRENCY_SYMBOLS } from '../utils/constants'; // [ADMIN UPDATE ADDED]
+import { api } from '../api/axios'; // [ADMIN SEARCH-SORT MODIFIED] Use named export
+import '../styles/Dashboard.css';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const { logout, currency } = useContext(AuthContext); // [ADMIN UPDATE MODIFIED] Add currency
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalTransactions: 0,
+    totalIncome: 0,
+    totalExpenses: 0,
+  });
   const [users, setUsers] = useState([]);
+  const [latestUser, setLatestUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // [ADMIN UPDATE ADDED] Auth context for currency symbol
-  const symbol = CURRENCY_SYMBOLS[currency] || '₱';
+  // [ADMIN SEARCH-SORT ADDED] Search state
+  const [searchQuery, setSearchQuery] = useState('');
 
-  // [ADMIN UPDATE ADDED] Stats state
-  const [stats, setStats] = useState({
-    totalUsers:        0,
-    totalTransactions: 0,
-    totalIncome:       0,
-    totalExpenses:     0,
-    netBalance:        0,
-    latestUser:        null
-  });
-  const [statsLoading, setStatsLoading] = useState(true);
-  const [statsError,   setStatsError]   = useState('');
+  // [ADMIN SEARCH-SORT ADDED] Sort state
+  // Default: newest registrations first
+  const [sortField, setSortField] = useState('createdAt');
+  const [sortDirection, setSortDirection] = useState('desc');
 
-  // [ADMIN UPDATE ADDED] fetchStats()
-  // FUNCTION: fetchStats()
-  // PURPOSE: Fetches platform stats from GET /api/admin/stats
-  // Called once on mount alongside existing fetchUsers()
-  // ERRORS: Sets statsError message if request fails
-  const fetchStats = async () => {
-    try {
-      setStatsLoading(true);
-      const res = await api.get('/api/admin/stats');
-      setStats(res.data);
-    } catch (err) {
-      setStatsError('Failed to load platform stats.');
-    } finally {
-      setStatsLoading(false);
-    }
-  };
-
-  // FUNCTION: fetchUsers()
-  // PURPOSE: Calls GET /api/admin/users and stores result in state
-  // Called once on component mount using useEffect
-  const fetchUsers = async () => {
-    try {
-      const response = await api.get('/api/admin/users');
-      setUsers(response.data.users);
-      setLoading(false);
-    } catch (requestError) {
-      setError(requestError.response?.data?.message || 'Failed to load users.');
-      setLoading(false);
-    }
-  };
-
-  // [ADMIN UPDATE MODIFIED] Call fetchStats on mount
-  // alongside existing fetchUsers — both run independently
   useEffect(() => {
-    fetchStats(); // [ADMIN UPDATE ADDED]
-    fetchUsers(); // existing — do not change
+    fetchDashboardData();
   }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      const [statsRes, usersRes] = await Promise.all([
+        api.get('/api/admin/stats'),
+        api.get('/api/admin/users'),
+      ]);
+
+      setStats(statsRes.data);
+      setUsers(usersRes.data.users || usersRes.data); // Handle both response formats
+
+      // Get latest registered user
+      const userArray = usersRes.data.users || usersRes.data;
+      if (userArray.length > 0) {
+        const sorted = [...userArray].sort(
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+        );
+        setLatestUser(sorted[0]);
+      }
+
+      setError('');
+    } catch (err) {
+      console.error('Error fetching dashboard ', err);
+      setError('Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteUser = async (userId) => {
+    if (!window.confirm('Are you sure you want to delete this user?')) {
+      return;
+    }
+
+    try {
+      await api.delete(`/api/admin/users/${userId}`);
+      await fetchDashboardData();
+    } catch (err) {
+      console.error('Error deleting user:', err);
+      alert('Failed to delete user');
+    }
+  };
+
+  const handleViewUser = (userId) => {
+    navigate(`/admin/users/${userId}`);
+  };
+
+  // [ADMIN SEARCH-SORT ADDED]
+  // FUNCTION: handleSort()
+  // PURPOSE: Toggles sort direction if same column clicked,
+  //          switches to new column ascending if different
+  // PARAMS: field (string) — column identifier to sort by
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(prev =>
+        prev === 'asc' ? 'desc' : 'asc'
+      );
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  // [ADMIN SEARCH-SORT ADDED]
+  // FUNCTION: getSortIndicator()
+  // PURPOSE: Returns the correct arrow for a column header
+  // PARAMS: field (string) — column to check
+  // RETURNS: ' ↑' | ' ↓' | ' ↕'
+  //   ↑ = active column ascending
+  //   ↓ = active column descending
+  //   ↕ = sortable but not currently active
+  const getSortIndicator = (field) => {
+    if (sortField !== field) return ' ↕';
+    return sortDirection === 'asc' ? ' ↑' : ' ↓';
+  };
+
+  // [ADMIN SEARCH-SORT ADDED] filteredAndSortedUsers
+  // PURPOSE: Applies search filter then sort to users array
+  // Runs on frontend — no API call needed
+  // useMemo prevents recalculation on unrelated re-renders
+  // DEPENDENCIES: users, searchQuery, sortField, sortDirection
+  const filteredAndSortedUsers = useMemo(() => {
+
+    // Step 1 — Filter by search query
+    // Match against fullName or email, case insensitive
+    const filtered = users.filter(user => {
+      if (searchQuery === '') return true;
+      const query = searchQuery.toLowerCase();
+      return (
+        user.fullName?.toLowerCase().includes(query) ||
+        user.email?.toLowerCase().includes(query)
+      );
+    });
+
+    // Step 2 — Sort the filtered results
+    return [...filtered].sort((a, b) => {
+      let aVal, bVal;
+
+      if (sortField === 'fullName') {
+        aVal = (a.fullName || '').toLowerCase();
+        bVal = (b.fullName || '').toLowerCase();
+      } else if (sortField === 'createdAt') {
+        aVal = new Date(a.createdAt);
+        bVal = new Date(b.createdAt);
+      } else if (sortField === 'transactionCount') {
+        aVal = a.transactionCount;
+        bVal = b.transactionCount;
+      } else if (sortField === 'netBalance') {
+        aVal = a.netBalance;
+        bVal = b.netBalance;
+      }
+
+      if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortDirection === 'asc' ?  1 : -1;
+      return 0;
+    });
+
+  }, [users, searchQuery, sortField, sortDirection]);
 
   if (loading) {
     return (
-      <div>
-        <Navbar onLogout={logout} />
-        <div className="page-container">
-          <p>Loading users...</p>
-        </div>
+      <div className="dashboard-container">
+        <div className="loading">Loading dashboard...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="dashboard-container">
+        <div className="error-message">{error}</div>
       </div>
     );
   }
 
   return (
-    <div className="admin-dashboard">
-      <Navbar onLogout={logout} />
-      <main className="page-container">
-        <h1>Admin Dashboard</h1>
+    <div className="dashboard-container">
+      <h1>Admin Dashboard</h1>
 
-        {/* [ADMIN UPDATE ADDED] Stats cards row */}
-        {statsError && (
-          <div style={{ color: 'red', marginBottom: '20px' }}>
-            {statsError}
-          </div>
-        )}
-        
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(5, 1fr)',
-          gap: '20px',
-          marginBottom: '30px'
-        }}>
-          {/* Card 1 — Total Users */}
-          <div style={{
-            padding: '20px',
-            backgroundColor: '#f8f9fa',
-            borderRadius: '8px',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-          }}>
-            <div style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>
-              Total Users
-            </div>
-            <div style={{ fontSize: '24px', fontWeight: 'bold' }}>
-              {statsLoading ? 'Loading...' : stats.totalUsers}
-            </div>
-          </div>
+      {/* Stats Cards */}
+      <div className="stats-grid">
+        <div className="stat-card">
+          <h3>Total Users</h3>
+          <p className="stat-value">{stats.totalUsers}</p>
+        </div>
+        <div className="stat-card">
+          <h3>Total Transactions</h3>
+          <p className="stat-value">{stats.totalTransactions}</p>
+        </div>
+        <div className="stat-card income">
+          <h3>Total Income</h3>
+          <p className="stat-value">₱{stats.totalIncome.toFixed(2)}</p>
+        </div>
+        <div className="stat-card expense">
+          <h3>Total Expenses</h3>
+          <p className="stat-value">₱{stats.totalExpenses.toFixed(2)}</p>
+        </div>
+      </div>
 
-          {/* Card 2 — Total Transactions */}
-          <div style={{
-            padding: '20px',
-            backgroundColor: '#f8f9fa',
-            borderRadius: '8px',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-          }}>
-            <div style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>
-              Total Transactions
-            </div>
-            <div style={{ fontSize: '24px', fontWeight: 'bold' }}>
-              {statsLoading ? 'Loading...' : stats.totalTransactions}
-            </div>
+      {/* Latest Registration Card */}
+      {latestUser && (
+        <div className="latest-registration">
+          <h3>Latest Registration</h3>
+          <div className="user-info">
+            <p>
+              <strong>{latestUser.fullName}</strong> ({latestUser.email})
+            </p>
+            <p className="registration-date">
+              Joined: {new Date(latestUser.createdAt).toLocaleDateString()}
+            </p>
           </div>
+        </div>
+      )}
 
-          {/* Card 3 — Platform Income */}
-          <div style={{
-            padding: '20px',
-            backgroundColor: '#f8f9fa',
-            borderRadius: '8px',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-          }}>
-            <div style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>
-              Platform Income
-            </div>
-            <div style={{ fontSize: '24px', fontWeight: 'bold', color: 'green' }}>
-              {statsLoading ? 'Loading...' : `${symbol}${stats.totalIncome.toFixed(2)}`}
-            </div>
-          </div>
-
-          {/* Card 4 — Platform Expenses */}
-          <div style={{
-            padding: '20px',
-            backgroundColor: '#f8f9fa',
-            borderRadius: '8px',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-          }}>
-            <div style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>
-              Platform Expenses
-            </div>
-            <div style={{ fontSize: '24px', fontWeight: 'bold', color: 'red' }}>
-              {statsLoading ? 'Loading...' : `${symbol}${stats.totalExpenses.toFixed(2)}`}
-            </div>
-          </div>
-
-          {/* Card 5 — Net Balance */}
-          <div style={{
-            padding: '20px',
-            backgroundColor: '#f8f9fa',
-            borderRadius: '8px',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-          }}>
-            <div style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>
-              Net Balance
-            </div>
-            <div style={{
-              fontSize: '24px',
-              fontWeight: 'bold',
-              color: statsLoading ? 'inherit' : (stats.netBalance > 0 ? 'green' : stats.netBalance < 0 ? 'red' : 'gray')
-            }}>
-              {statsLoading ? 'Loading...' : `${symbol}${stats.netBalance.toFixed(2)}`}
-            </div>
+      {/* [ADMIN SEARCH-SORT MODIFIED] Users Table Section with Search */}
+      <div className="users-section">
+        <div className="users-header">
+          <h2>Registered Users ({filteredAndSortedUsers.length})</h2>
+          {/* [ADMIN SEARCH-SORT ADDED] Search input */}
+          <div className="search-container">
+            <input
+              type="text"
+              placeholder="Search by name or email..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="search-input"
+            />
+            {/* [ADMIN SEARCH-SORT ADDED] Clear button */}
+            {searchQuery && (
+              <button 
+                onClick={() => setSearchQuery('')}
+                className="clear-search-btn"
+                title="Clear search"
+              >
+                ✕
+              </button>
+            )}
           </div>
         </div>
 
-        {/* [ADMIN UPDATE ADDED] Latest Registration Card */}
-        {stats.latestUser && (
-          <div style={{
-            padding: '20px',
-            backgroundColor: '#f8f9fa',
-            borderRadius: '8px',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-            marginBottom: '30px'
-          }}>
-            <div style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '12px' }}>
-              Latest Registration
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '8px 16px' }}>
-              <div style={{ fontWeight: '500' }}>Name:</div>
-              <div>{stats.latestUser.fullName}</div>
-              <div style={{ fontWeight: '500' }}>Email:</div>
-              <div>{stats.latestUser.email}</div>
-              <div style={{ fontWeight: '500' }}>Joined:</div>
-              <div>
-                {new Date(stats.latestUser.createdAt).toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                })}
-              </div>
-            </div>
+        {/* [ADMIN SEARCH-SORT ADDED] Empty search state */}
+        {filteredAndSortedUsers.length === 0 && searchQuery && (
+          <div className="empty-state">
+            No users found matching '{searchQuery}'
           </div>
         )}
 
-        <p className="subtitle">Registered Users ({users.length})</p>
-
-        {error && <p className="error-message">{error}</p>}
-
-        {/* [ADMIN UPDATE MODIFIED] Users Table with new columns: Transactions | Income | Expenses | Net */}
-        <div className="users-table">
-          <div className="table-header">
-            <span>Name</span>
-            <span>Email</span>
-            <span>Role</span>
-            <span>Date Joined</span>
-            <span style={{ textAlign: 'center' }}>Transactions</span>
-            <span style={{ textAlign: 'right' }}>Income</span>
-            <span style={{ textAlign: 'right' }}>Expenses</span>
-            <span style={{ textAlign: 'right' }}>Net</span>
-            <span>Actions</span>
-          </div>
-          
-          {users.length === 0 ? (
-            <p className="empty-state">No users registered yet.</p>
-          ) : (
-            users.map((user) => (
-              <div key={user._id} className="table-row">
-                <span>{user.fullName}</span>
-                <span>{user.email}</span>
-                <span className={`role-badge ${user.role}`}>{user.role}</span>
-                <span>{new Date(user.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
-                
-                {/* [ADMIN UPDATE ADDED] Transactions column */}
-                <span style={{ textAlign: 'center' }}>
-                  {user.transactionCount > 0 ? `${user.transactionCount} txn` : '—'}
-                </span>
-                
-                {/* [ADMIN UPDATE ADDED] Income column */}
-                <span style={{ textAlign: 'right', color: 'green' }}>
-                  {user.totalIncome > 0 ? `${symbol}${user.totalIncome.toFixed(2)}` : '—'}
-                </span>
-                
-                {/* [ADMIN UPDATE ADDED] Expenses column */}
-                <span style={{ textAlign: 'right', color: 'red' }}>
-                  {user.totalExpenses > 0 ? `${symbol}${user.totalExpenses.toFixed(2)}` : '—'}
-                </span>
-                
-                {/* [ADMIN UPDATE ADDED] Net column */}
-                <span style={{
-                  textAlign: 'right',
-                  color: user.netBalance > 0 ? 'green' : user.netBalance < 0 ? 'red' : 'inherit'
-                }}>
-                  {user.netBalance !== 0 ? `${symbol}${user.netBalance.toFixed(2)}` : '—'}
-                </span>
-                
-                <div className="actions">
-                  <button
-                    onClick={() => navigate(`/admin/users/${user._id}`)}
-                    className="btn-primary"
+        {/* [ADMIN SEARCH-SORT MODIFIED] Users Table - now uses filteredAndSortedUsers */}
+        {filteredAndSortedUsers.length > 0 && (
+          <div className="table-container">
+            <table className="users-table">
+              <thead>
+                <tr>
+                  {/* [ADMIN SEARCH-SORT MODIFIED] Sortable Name header */}
+                  <th
+                    onClick={() => handleSort('fullName')}
+                    style={{ cursor: 'pointer', userSelect: 'none' }}
                   >
-                    View Records
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </main>
+                    Name{getSortIndicator('fullName')}
+                  </th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  {/* [ADMIN SEARCH-SORT MODIFIED] Sortable Joined header */}
+                  <th
+                    onClick={() => handleSort('createdAt')}
+                    style={{ cursor: 'pointer', userSelect: 'none' }}
+                  >
+                    Joined{getSortIndicator('createdAt')}
+                  </th>
+                  {/* [ADMIN SEARCH-SORT MODIFIED] Sortable Transactions header */}
+                  <th
+                    onClick={() => handleSort('transactionCount')}
+                    style={{ cursor: 'pointer', userSelect: 'none' }}
+                  >
+                    Transactions{getSortIndicator('transactionCount')}
+                  </th>
+                  <th>Income</th>
+                  <th>Expenses</th>
+                  {/* [ADMIN SEARCH-SORT MODIFIED] Sortable Net header */}
+                  <th
+                    onClick={() => handleSort('netBalance')}
+                    style={{ cursor: 'pointer', userSelect: 'none' }}
+                  >
+                    Net{getSortIndicator('netBalance')}
+                  </th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {/* [ADMIN SEARCH-SORT MODIFIED] Now maps filteredAndSortedUsers */}
+                {filteredAndSortedUsers.map((user) => (
+                  <tr key={user._id}>
+                    <td>{user.fullName}</td>
+                    <td>{user.email}</td>
+                    <td>
+                      <span className={`role-badge ${user.role}`}>
+                        {user.role}
+                      </span>
+                    </td>
+                    <td>{new Date(user.createdAt).toLocaleDateString()}</td>
+                    <td>{user.transactionCount}</td>
+                    <td className="income">₱{user.totalIncome.toFixed(2)}</td>
+                    <td className="expense">₱{user.totalExpenses.toFixed(2)}</td>
+                    <td className={user.netBalance >= 0 ? 'income' : 'expense'}>
+                      ₱{user.netBalance.toFixed(2)}
+                    </td>
+                    <td>
+                      <div className="action-buttons">
+                        <button
+                          onClick={() => handleViewUser(user._id)}
+                          className="btn-view"
+                        >
+                          View
+                        </button>
+                        <button
+                          onClick={() => handleDeleteUser(user._id)}
+                          className="btn-delete"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

@@ -133,13 +133,13 @@ const MonthlySummary = ({ transactions }) => {
               <tr key={index}>
                 <td className="col-month">{month.month}</td>
                 <td className="col-income">
-                  {month.income > 0 ? `${symbol}${month.income.toFixed(2)}` : '—'}
+                  {month.income > 0 ? `${symbol}${month.income.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
                 </td>
                 <td className="col-expenses">
-                  {month.expenses > 0 ? `${symbol}${month.expenses.toFixed(2)}` : '—'}
+                  {month.expenses > 0 ? `${symbol}${month.expenses.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
                 </td>
                 <td className={`col-net ${month.net > 0 ? 'positive' : month.net < 0 ? 'negative' : 'zero'}`}>
-                  {month.net !== 0 ? `${symbol}${month.net.toFixed(2)}` : '—'}
+                  {month.net !== 0 ? `${symbol}${month.net.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
                 </td>
                 <td className="col-count">
                   {month.count > 0 ? `${month.count} txn` : '—'}
@@ -150,10 +150,10 @@ const MonthlySummary = ({ transactions }) => {
           <tfoot>
             <tr className="year-total-row">
               <td className="col-month"><strong>Total {selectedYear}</strong></td>
-              <td className="col-income"><strong>{symbol}{yearTotals.income.toFixed(2)}</strong></td>
-              <td className="col-expenses"><strong>{symbol}{yearTotals.expenses.toFixed(2)}</strong></td>
+              <td className="col-income"><strong>{symbol}{yearTotals.income.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
+              <td className="col-expenses"><strong>{symbol}{yearTotals.expenses.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
               <td className={`col-net ${yearTotals.net > 0 ? 'positive' : yearTotals.net < 0 ? 'negative' : 'zero'}`}>
-                <strong>{symbol}{yearTotals.net.toFixed(2)}</strong>
+                <strong>{symbol}{yearTotals.net.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
               </td>
               <td className="col-count"><strong>{yearTotals.count} txn</strong></td>
             </tr>

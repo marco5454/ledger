@@ -334,6 +334,7 @@ const Dashboard = () => {
               onChange={e => setFilterDateFrom(e.target.value)}
               className="filter-input"
               title="From date"
+              placeholder="Start Date"
             />
             <input
               type="date"
@@ -341,6 +342,7 @@ const Dashboard = () => {
               onChange={e => setFilterDateTo(e.target.value)}
               className="filter-input"
               title="To date"
+              placeholder="End Date"
             />
 
             {hasActiveFilters && (
@@ -364,8 +366,7 @@ const Dashboard = () => {
         <section className="transactions-section">
           <div className="section-header">
             <div className="section-header-left">
-              <h3>Transaction History</h3>
-              <span className="transaction-count">({filteredTransactions.length})</span>
+              <h3>Transaction History <span className="transaction-count">({filteredTransactions.length})</span></h3>
             </div>
             <div className="section-header-right">
               <button onClick={handleExportCSV} className="btn-export-csv">

@@ -10,6 +10,15 @@ import { AuthContext } from '../context/AuthContext.jsx';
 import { CURRENCY_SYMBOLS } from '../utils/constants.js';
 import '../styles/TransactionTable.css';
 
+// Minimal formatter for adding commas to numbers
+const formatAmount = (amount) => {
+  if (amount == null) return '0.00';
+  return Number(amount).toLocaleString('en-US', { 
+    minimumFractionDigits: 2, 
+    maximumFractionDigits: 2 
+  });
+};
+
 // FUNCTION: TransactionList()
 // PURPOSE: Renders all transactions as a formatted table
 // PARAMS:
@@ -96,27 +105,14 @@ const TransactionList = ({ transactions, onEdit, onDelete, sortField, sortDirect
 
               {/* Amount cell */}
               <td className={`col-amount ${amountClass}`}>
-                {symbol}{transaction.amount.toFixed(2)}
+                {symbol}{formatAmount(transaction.amount)}
               </td>
 
               {/* Actions cell */}
               <td className="col-actions">
-                <button
-                  type="button"
-                  className="action-btn edit-btn"
-                  onClick={() => onEdit(transaction)}
-                  title="Edit transaction"
-                >
-                  ✏️
-                </button>
-                <button
-                  type="button"
-                  className="action-btn delete-btn"
-                  onClick={() => onDelete(transaction._id)}
-                  title="Delete transaction"
-                >
-                  🗑️
-                </button>
+                <span className="action-link" onClick={() => onEdit(transaction)}>Edit</span>
+                <span className="action-separator">|</span>
+                <span className="action-link delete" onClick={() => onDelete(transaction._id)}>Delete</span>
               </td>
             </tr>
           );

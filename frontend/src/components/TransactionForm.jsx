@@ -12,7 +12,7 @@ import { INCOME_CATEGORIES, EXPENSE_CATEGORIES } from '../utils/constants.js';
 
 const initialState = {
   description: '',
-  amount: 0,
+  amount: '',
   type: 'income',
   category: '',
   date: new Date().toISOString().slice(0, 10),
@@ -64,7 +64,7 @@ const TransactionForm = ({ transaction, onSuccess }) => {
     const { name, value } = e.target;
     setFormState(prev => ({
       ...prev,
-      [name]: name === 'amount' ? parseFloat(value) || 0 : value
+      [name]: name === 'amount' ? value : value
     }));
   };
 

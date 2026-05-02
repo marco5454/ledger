@@ -9,6 +9,8 @@ import Modal from '../components/Modal.jsx'; // [UI UPDATE ADDED]
 import '../styles/Dashboard.css'; // [UI UPDATE ADDED]
 // [CAT-PAGE ADDED]
 import { ALL_CATEGORIES, DEFAULT_PAGE_LIMIT } from '../utils/constants.js';
+// [SORT-MONTHLY ADDED]
+import MonthlySummary from '../components/MonthlySummary.jsx';
 
 const Dashboard = () => {
   // [SETTINGS MODIFIED] Read fullName and currency from context
@@ -35,6 +37,10 @@ const Dashboard = () => {
   const [filterCategory,   setFilterCategory]   = useState('all');
   const [filterDateFrom,   setFilterDateFrom]   = useState('');
   const [filterDateTo,     setFilterDateTo]     = useState('');
+
+  // [SORT-MONTHLY ADDED] Sort state
+  const [sortField, setSortField] = useState('date');
+  const [sortDirection, setSortDirection] = useState('desc');
 
   // [CAT-PAGE ADDED] Full dataset for balance summary
   // Separate from paginated transactions so balance totals
@@ -80,7 +86,7 @@ const Dashboard = () => {
   // Runs on frontend — no extra API call needed
   // useMemo prevents recalculation on unrelated re-renders
   const filteredTransactions = useMemo(() => {
-    return transactions.filter(t => {
+    let filtered = transactions.filter(t => {
 
       const matchesSearch =
         searchQuery === '' ||
@@ -106,9 +112,38 @@ const Dashboard = () => {
       return matchesSearch && matchesType &&
              matchesCategory && matchesFrom && matchesTo;
     });
+
+    // [SORT-MONTHLY ADDED] Apply sorting
+    filtered.sort((a, b) => {
+      let aVal, bVal;
+
+      switch (sortField) {
+        case 'date':
+          aVal = new Date(a.date);
+          bVal = new Date(b.date);
+          break;
+        case 'category':
+          aVal = a.category || '';
+          bVal = b.category || '';
+          break;
+        case 'amount':
+          aVal = a.amount;
+          bVal = b.amount;
+          break;
+        default:
+          return 0;
+      }
+
+      if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    return filtered;
   }, [
     transactions, searchQuery, filterType,
-    filterCategory, filterDateFrom, filterDateTo
+    filterCategory, filterDateFrom, filterDateTo,
+    sortField, sortDirection
   ]);
 
   // [CAT-PAGE ADDED] hasActiveFilters
@@ -126,6 +161,20 @@ const Dashboard = () => {
     setFilterCategory('all');
     setFilterDateFrom('');
     setFilterDateTo('');
+  };
+
+  // [SORT-MONTHLY ADDED] handleSort()
+  // PURPOSE: Toggles sort direction or changes sort field
+  // PARAMS: field (string) - 'date', 'category', or 'amount'
+  const handleSort = (field) => {
+    if (sortField === field) {
+      // Toggle direction if same field
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // New field, default to desc
+      setSortField(field);
+      setSortDirection('desc');
+    }
   };
 
   // [CAT-PAGE ADDED] handlePageChange()
@@ -216,6 +265,9 @@ const Dashboard = () => {
         {/* [CAT-PAGE MODIFIED] Use full dataset for accurate totals */}
         <BalanceSummary transactions={allTransactions} />
 
+        {/* [SORT-MONTHLY ADDED] Monthly summary section */}
+        <MonthlySummary transactions={allTransactions} />
+
         {/* Error message */}
         {error && <p className="error-message">{error}</p>}
 
@@ -297,6 +349,9 @@ const Dashboard = () => {
             transactions={filteredTransactions}
             onEdit={handleEditClick}
             onDelete={handleDeleteTransaction}
+            sortField={sortField}
+            sortDirection={sortDirection}
+            onSort={handleSort}
           />
 
           {/* [CAT-PAGE ADDED] Pagination — only show if more than 1 page */}

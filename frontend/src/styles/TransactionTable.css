@@ -29,6 +29,18 @@
   letter-spacing: 0.5px;
 }
 
+/* [SORT-MONTHLY ADDED] Sortable header styling */
+.sortable-header {
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.2s ease;
+}
+
+.sortable-header:hover {
+  color: #333;
+  background-color: #e8e8e8;
+}
+
 /* Table body rows */
 .transactions-table tbody tr {
   border-bottom: 1px solid #f0f0f0;

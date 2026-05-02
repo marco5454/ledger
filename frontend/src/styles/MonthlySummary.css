@@ -1,0 +1,216 @@
+/* ============================================================
+   FILE: styles/MonthlySummary.css
+   PURPOSE: Styling for monthly summary table and section
+   PHASE: Sort & Monthly Update
+   ============================================================ */
+
+.monthly-summary-section {
+  background-color: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.monthly-summary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.monthly-summary-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.year-selector {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  background-color: white;
+  cursor: pointer;
+  min-width: 80px;
+}
+
+.year-selector:focus {
+  outline: none;
+  border-color: #27ae60;
+  box-shadow: 0 0 0 3px rgba(39, 174, 96, 0.1);
+}
+
+.monthly-summary-table-container {
+  overflow-x: auto;
+}
+
+.monthly-summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: white;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.monthly-summary-table thead {
+  background-color: #f5f5f5;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.monthly-summary-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: #666;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.monthly-summary-table td {
+  padding: 12px 16px;
+  color: #333;
+  font-size: 0.95rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.monthly-summary-table tbody tr:hover {
+  background-color: #fafafa;
+}
+
+.monthly-summary-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+/* Column width definitions */
+.col-month {
+  width: 120px;
+  font-weight: 500;
+}
+
+.col-income {
+  width: 120px;
+  text-align: right;
+  color: #27ae60;
+  font-weight: 500;
+}
+
+.col-expenses {
+  width: 120px;
+  text-align: right;
+  color: #e74c3c;
+  font-weight: 500;
+}
+
+.col-net {
+  width: 120px;
+  text-align: right;
+  font-weight: 500;
+}
+
+.col-net.positive {
+  color: #27ae60;
+}
+
+.col-net.negative {
+  color: #e74c3c;
+}
+
+.col-net.zero {
+  color: #999;
+}
+
+.col-count {
+  width: 100px;
+  text-align: center;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+/* Footer row styling */
+.year-total-row {
+  background-color: #f8f9fa;
+  border-top: 2px solid #e0e0e0;
+}
+
+.year-total-row td {
+  font-weight: 600;
+  color: #333;
+  border-bottom: none;
+}
+
+.year-total-row .col-month {
+  font-weight: 700;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .monthly-summary-section {
+    padding: 1rem;
+  }
+
+  .monthly-summary-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .monthly-summary-table th,
+  .monthly-summary-table td {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+  }
+
+  .col-month {
+    width: 100px;
+  }
+
+  .col-income,
+  .col-expenses,
+  .col-net {
+    width: 100px;
+  }
+
+  .col-count {
+    width: 80px;
+  }
+}
+
+@media (max-width: 480px) {
+  .monthly-summary-table-container {
+    font-size: 0.8rem;
+  }
+
+  .monthly-summary-table th,
+  .monthly-summary-table td {
+    padding: 6px 8px;
+  }
+
+  .col-month {
+    width: 80px;
+  }
+
+  .col-income,
+  .col-expenses,
+  .col-net {
+    width: 80px;
+  }
+
+  .col-count {
+    width: 70px;
+  }
+}
+
+/* Loading/empty state */
+.empty-state {
+  text-align: center;
+  color: #666;
+  font-style: italic;
+  padding: 2rem;
+  margin: 0;
+}

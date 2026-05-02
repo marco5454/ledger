@@ -16,11 +16,20 @@ import '../styles/TransactionTable.css';
 //   transactions (array)  — list of transaction objects
 //   onEdit (function)     — called with transaction object on edit
 //   onDelete (function)   — called with transaction._id on delete
+//   sortField (string)   — current sort field ('date', 'category', 'amount')
+//   sortDirection (string) — current sort direction ('asc', 'desc')
+//   onSort (function)    — called with field name to change sort
 // RETURNS: Table element with all transactions, or empty state
 
-const TransactionList = ({ transactions, onEdit, onDelete }) => {
+const TransactionList = ({ transactions, onEdit, onDelete, sortField, sortDirection, onSort }) => {
   const { currency } = useContext(AuthContext);
   const symbol = CURRENCY_SYMBOLS[currency] || '₱';
+
+  // [SORT-MONTHLY ADDED] Helper function for sort indicators
+  const getSortIndicator = (field) => {
+    if (sortField !== field) return '';
+    return sortDirection === 'asc' ? ' ↑' : ' ↓';
+  };
 
   // [UI UPDATE ADDED] Empty state handling
   if (!transactions.length) {
@@ -37,12 +46,18 @@ const TransactionList = ({ transactions, onEdit, onDelete }) => {
       {/* [UI UPDATE ADDED] Table header */}
       <thead>
         <tr>
-          <th className="col-date">Date</th>
+          <th className="col-date sortable-header" onClick={() => onSort('date')}>
+            Date{getSortIndicator('date')}
+          </th>
           <th className="col-description">Description</th>
           {/* [CAT-PAGE ADDED] Category column header */}
-          <th className="col-category">Category</th>
+          <th className="col-category sortable-header" onClick={() => onSort('category')}>
+            Category{getSortIndicator('category')}
+          </th>
           <th className="col-type">Type</th>
-          <th className="col-amount">Amount</th>
+          <th className="col-amount sortable-header" onClick={() => onSort('amount')}>
+            Amount{getSortIndicator('amount')}
+          </th>
           <th className="col-actions">Actions</th>
         </tr>
       </thead>

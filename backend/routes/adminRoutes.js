@@ -10,9 +10,11 @@
 const express = require('express');
 const authMiddleware = require('../middleware/authMiddleware');
 const adminMiddleware = require('../middleware/adminMiddleware');
+// [ADMIN UPDATE MODIFIED] Add getStats to existing import
 const {
   getAllUsers,
-  getUserTransactions
+  getUserTransactions,
+  getStats             // [ADMIN UPDATE ADDED]
 } = require('../controllers/adminController');
 
 const router = express.Router();
@@ -32,5 +34,11 @@ router.get('/users', getAllUsers);
 // PARAMS: id — the MongoDB _id of the target user
 // RESPONSE: { user: {...}, transactions: [...] }
 router.get('/users/:id/transactions', getUserTransactions);
+
+// [ADMIN UPDATE ADDED]
+// ROUTE: GET /api/admin/stats
+// ACCESS: Admin only
+// PURPOSE: Platform overview numbers for stats cards
+router.get('/stats', getStats);
 
 module.exports = router;

@@ -11,6 +11,8 @@ import '../styles/Dashboard.css'; // [UI UPDATE ADDED]
 import { ALL_CATEGORIES, DEFAULT_PAGE_LIMIT } from '../utils/constants.js';
 // [SORT-MONTHLY ADDED]
 import MonthlySummary from '../components/MonthlySummary.jsx';
+// [CSV ADDED] Import export utility
+import { exportTransactionsToCSV } from '../utils/exportCSV';
 
 const Dashboard = () => {
   // [SETTINGS MODIFIED] Read fullName and currency from context
@@ -232,6 +234,27 @@ const Dashboard = () => {
     }
   };
 
+  // FUNCTION: handleExportCSV()
+  // PURPOSE: Determines which dataset to export then calls
+  //          the CSV utility function
+  // If filters are active: export filteredTransactions
+  //   WHY: User filtered for a reason — export what they see
+  // If no filters active: export allTransactions
+  //   WHY: Full history export when nothing is filtered
+  // Filename reflects what was exported for clarity
+  const handleExportCSV = () => {
+    // [CSV ADDED]
+    const dataToExport = hasActiveFilters
+      ? filteredTransactions
+      : allTransactions;
+
+    const filename = hasActiveFilters
+      ? 'filtered_transactions'
+      : 'all_transactions';
+
+    exportTransactionsToCSV(dataToExport, currency, filename);
+  };
+
   // [UI UPDATE MODIFIED] Get today's date formatted
   const today = new Date();
   const formattedDate = today.toLocaleDateString('en-US', {
@@ -340,8 +363,21 @@ const Dashboard = () => {
         {/* [UI UPDATE ADDED] Transaction history section */}
         <section className="transactions-section">
           <div className="section-header">
-            <h3>Transaction History</h3>
-            <span className="transaction-count">({filteredTransactions.length})</span>
+            <div className="section-header-left">
+              <h3>Transaction History</h3>
+              <span className="transaction-count">({filteredTransactions.length})</span>
+            </div>
+            <div className="section-header-right">
+              <button onClick={handleExportCSV} className="btn-export-csv">
+                Export CSV ↓
+              </button>
+              <p className="export-info">
+                {hasActiveFilters
+                  ? `Exports ${filteredTransactions.length} filtered transactions`
+                  : `Exports all ${allTransactions.length} transactions`
+                }
+              </p>
+            </div>
           </div>
 
           {/* [CAT-PAGE MODIFIED] Table uses filtered list */}

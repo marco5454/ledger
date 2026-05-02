@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useState } from 'react';
+import { useCallback, useContext, useEffect, useState, useMemo } from 'react';
 import { api } from '../api/axios.js';
 import { AuthContext } from '../context/AuthContext.jsx';
 import Navbar from '../components/Navbar.jsx';
@@ -7,12 +7,15 @@ import TransactionForm from '../components/TransactionForm.jsx';
 import TransactionList from '../components/TransactionList.jsx';
 import Modal from '../components/Modal.jsx'; // [UI UPDATE ADDED]
 import '../styles/Dashboard.css'; // [UI UPDATE ADDED]
+// [CAT-PAGE ADDED]
+import { ALL_CATEGORIES, DEFAULT_PAGE_LIMIT } from '../utils/constants.js';
 
 const Dashboard = () => {
   // [SETTINGS MODIFIED] Read fullName and currency from context
   const { logout, fullName, currency } = useContext(AuthContext);
   const [transactions, setTransactions] = useState([]);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   // [UI UPDATE ADDED] Modal state for add/edit transaction
   const [showModal, setShowModal] = useState(false);
@@ -21,21 +24,117 @@ const Dashboard = () => {
   // null means we are adding a new transaction
   const [editingTransaction, setEditingTransaction] = useState(null);
 
-  // FUNCTION: loadTransactions()
-  // PURPOSE: Fetch all transactions from API
-  // RETURNS: Updates state with transaction list or error
-  const loadTransactions = useCallback(async () => {
+  // [CAT-PAGE ADDED] Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages]   = useState(1);
+  const [totalCount, setTotalCount]   = useState(0);
+
+  // [CAT-PAGE ADDED] Filter state
+  const [searchQuery,      setSearchQuery]      = useState('');
+  const [filterType,       setFilterType]       = useState('all');
+  const [filterCategory,   setFilterCategory]   = useState('all');
+  const [filterDateFrom,   setFilterDateFrom]   = useState('');
+  const [filterDateTo,     setFilterDateTo]     = useState('');
+
+  // [CAT-PAGE ADDED] Full dataset for balance summary
+  // Separate from paginated transactions so balance totals
+  // always reflect ALL records not just the current page
+  const [allTransactions, setAllTransactions]   = useState([]);
+
+  // [CAT-PAGE MODIFIED] fetchTransactions()
+  // PURPOSE: Fetches one page of transactions
+  // Also fetches full dataset separately for balance summary
+  const fetchTransactions = useCallback(async (page = 1) => {
     try {
-      const response = await api.get('/api/transactions');
-      setTransactions(response.data.transactions);
+      setLoading(true);
+
+      // Paginated fetch for the table
+      const res = await api.get(
+        `/api/transactions?page=${page}&limit=${DEFAULT_PAGE_LIMIT}`
+      );
+      setTransactions(res.data.transactions);
+      setTotalPages(res.data.totalPages);
+      setTotalCount(res.data.totalCount);
+      setCurrentPage(res.data.currentPage);
+
+      // [CAT-PAGE ADDED] Full fetch for balance summary only
+      // Uses high limit to get all records in one call
+      const allRes = await api.get(
+        `/api/transactions?page=1&limit=9999`
+      );
+      setAllTransactions(allRes.data.transactions);
+
     } catch (requestError) {
       setError(requestError.response?.data?.message || 'Unable to load transactions.');
+    } finally {
+      setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    loadTransactions();
-  }, [loadTransactions]);
+    fetchTransactions(currentPage);
+  }, [currentPage, fetchTransactions]);
+
+  // [CAT-PAGE ADDED] filteredTransactions
+  // PURPOSE: Applies all active filters to current page data
+  // Runs on frontend — no extra API call needed
+  // useMemo prevents recalculation on unrelated re-renders
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter(t => {
+
+      const matchesSearch =
+        searchQuery === '' ||
+        t.description.toLowerCase()
+          .includes(searchQuery.toLowerCase()) ||
+        t.category?.toLowerCase()
+          .includes(searchQuery.toLowerCase());
+
+      const matchesType =
+        filterType === 'all' || t.type === filterType;
+
+      const matchesCategory =
+        filterCategory === 'all' || t.category === filterCategory;
+
+      const txDate = new Date(t.date);
+      const matchesFrom =
+        filterDateFrom === '' ||
+        txDate >= new Date(filterDateFrom);
+      const matchesTo =
+        filterDateTo === '' ||
+        txDate <= new Date(filterDateTo);
+
+      return matchesSearch && matchesType &&
+             matchesCategory && matchesFrom && matchesTo;
+    });
+  }, [
+    transactions, searchQuery, filterType,
+    filterCategory, filterDateFrom, filterDateTo
+  ]);
+
+  // [CAT-PAGE ADDED] hasActiveFilters
+  // PURPOSE: Controls visibility of Clear Filters button
+  const hasActiveFilters =
+    searchQuery || filterType !== 'all' ||
+    filterCategory !== 'all' ||
+    filterDateFrom || filterDateTo;
+
+  // [CAT-PAGE ADDED] handleClearFilters()
+  // PURPOSE: Resets all filter and search state to defaults
+  const handleClearFilters = () => {
+    setSearchQuery('');
+    setFilterType('all');
+    setFilterCategory('all');
+    setFilterDateFrom('');
+    setFilterDateTo('');
+  };
+
+  // [CAT-PAGE ADDED] handlePageChange()
+  // PURPOSE: Updates current page — triggers useEffect refetch
+  // PARAMS: newPage (number)
+  const handlePageChange = (newPage) => {
+    if (newPage < 1 || newPage > totalPages) return;
+    setCurrentPage(newPage);
+  };
 
   // [UI UPDATE ADDED] FUNCTION: handleAddClick()
   // PURPOSE: Opens modal in "add" mode
@@ -65,19 +164,20 @@ const Dashboard = () => {
   // Closes modal and refreshes transaction list
   const handleTransactionSaved = async () => {
     handleModalClose();
-    await loadTransactions();
+    setCurrentPage(1);
+    await fetchTransactions(1);
   };
 
-  // FUNCTION: handleDelete()
+  // FUNCTION: handleDeleteTransaction()
   // PURPOSE: Delete a transaction after user confirmation
   // PARAMS: transactionId (string) — the ID to delete
-  const handleDelete = async (transactionId) => {
+  const handleDeleteTransaction = async (transactionId) => {
     if (!window.confirm('Delete this transaction?')) {
       return;
     }
     try {
       await api.delete(`/api/transactions/${transactionId}`);
-      await loadTransactions();
+      await fetchTransactions(currentPage);
     } catch (requestError) {
       setError(requestError.response?.data?.message || 'Delete failed.');
     }
@@ -113,24 +213,144 @@ const Dashboard = () => {
       {/* [UI UPDATE MODIFIED] Main content area */}
       <main className="dashboard-content">
         {/* Balance summary cards */}
-        <BalanceSummary transactions={transactions} />
+        {/* [CAT-PAGE MODIFIED] Use full dataset for accurate totals */}
+        <BalanceSummary transactions={allTransactions} />
 
         {/* Error message */}
         {error && <p className="error-message">{error}</p>}
+
+        {/* [CAT-PAGE ADDED] Search and filter controls */}
+        <section className="filters-section">
+          <div className="filter-controls">
+            {/* [CAT-PAGE ADDED] Search input */}
+            <input
+              type="text"
+              placeholder="Search description or category..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="search-input"
+            />
+
+            {/* [CAT-PAGE ADDED] Filter controls */}
+            <select
+              value={filterType}
+              onChange={e => setFilterType(e.target.value)}
+              className="filter-select"
+            >
+              <option value="all">All Types</option>
+              <option value="income">Income</option>
+              <option value="expense">Expense</option>
+            </select>
+
+            <select
+              value={filterCategory}
+              onChange={e => setFilterCategory(e.target.value)}
+              className="filter-select"
+            >
+              <option value="all">All Categories</option>
+              {ALL_CATEGORIES.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+
+            <input
+              type="date"
+              value={filterDateFrom}
+              onChange={e => setFilterDateFrom(e.target.value)}
+              className="filter-input"
+              title="From date"
+            />
+            <input
+              type="date"
+              value={filterDateTo}
+              onChange={e => setFilterDateTo(e.target.value)}
+              className="filter-input"
+              title="To date"
+            />
+
+            {hasActiveFilters && (
+              <button
+                onClick={handleClearFilters}
+                className="btn-clear-filters"
+              >
+                Clear Filters
+              </button>
+            )}
+          </div>
+
+          {/* [CAT-PAGE ADDED] Results count */}
+          <p className="results-count">
+            Showing {filteredTransactions.length} of {totalCount} transactions
+            {hasActiveFilters && ' (filtered)'}
+          </p>
+        </section>
 
         {/* [UI UPDATE ADDED] Transaction history section */}
         <section className="transactions-section">
           <div className="section-header">
             <h3>Transaction History</h3>
-            <span className="transaction-count">({transactions.length})</span>
+            <span className="transaction-count">({filteredTransactions.length})</span>
           </div>
 
-          {/* Transaction table */}
+          {/* [CAT-PAGE MODIFIED] Table uses filtered list */}
           <TransactionList
-            transactions={transactions}
+            transactions={filteredTransactions}
             onEdit={handleEditClick}
-            onDelete={handleDelete}
+            onDelete={handleDeleteTransaction}
           />
+
+          {/* [CAT-PAGE ADDED] Pagination — only show if more than 1 page */}
+          {totalPages > 1 && (
+            <div className="pagination-controls">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="pagination-btn"
+              >
+                Previous
+              </button>
+
+              {/* Page number buttons — max 5 visible at a time */}
+              <div className="page-numbers">
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter(page =>
+                    page === 1 ||
+                    page === totalPages ||
+                    Math.abs(page - currentPage) <= 2
+                  )
+                  .map((page, index, arr) => (
+                    <div key={page}>
+                      {index > 0 && arr[index-1] !== page - 1 && (
+                        <span className="ellipsis">...</span>
+                      )}
+                      <button
+                        onClick={() => handlePageChange(page)}
+                        disabled={page === currentPage}
+                        className={`page-btn ${page === currentPage ? 'active' : ''}`}
+                      >
+                        {page}
+                      </button>
+                    </div>
+                  ))
+                }
+              </div>
+
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="pagination-btn"
+              >
+                Next
+              </button>
+            </div>
+          )}
+
+          {/* Page info */}
+          {totalPages > 1 && (
+            <p className="page-info">
+              Page {currentPage} of {totalPages}
+            </p>
+          )}
         </section>
       </main>
 

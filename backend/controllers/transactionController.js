@@ -1,12 +1,31 @@
 // Controller for transaction CRUD operations.
 const Transaction = require('../models/Transaction');
 
+// [CAT-PAGE MODIFIED] getTransactions()
+// PURPOSE: Returns paginated transactions for logged-in user
+// QUERY PARAMS: page (default 1), limit (default 10)
+// RETURNS: { transactions, totalCount, currentPage, totalPages }
 exports.getTransactions = async (req, res) => {
   try {
-    const transactions = await Transaction.find({ user: req.user.id })
-      .sort({ date: -1 });
+    const page  = parseInt(req.query.page)  || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip  = (page - 1) * limit;
 
-    return res.status(200).json({ transactions });
+    // Run both queries simultaneously for efficiency
+    const [totalCount, transactions] = await Promise.all([
+      Transaction.countDocuments({ user: req.user.id }),
+      Transaction.find({ user: req.user.id })
+        .sort({ date: -1 })
+        .skip(skip)
+        .limit(limit)
+    ]);
+
+    return res.status(200).json({
+      transactions,
+      totalCount,
+      currentPage: page,
+      totalPages: Math.ceil(totalCount / limit)
+    });
   } catch (error) {
     console.error('Get transactions error:', error.message);
     return res.status(500).json({ message: 'Failed to load transactions' });
@@ -15,17 +34,27 @@ exports.getTransactions = async (req, res) => {
 
 exports.createTransaction = async (req, res) => {
   try {
-    const { type, amount, description, date } = req.body;
+    // [CAT-PAGE MODIFIED] Destructure category from body
+    const { type, amount, description, category, date } = req.body;
 
     if (!type || !amount || !description) {
       return res.status(400).json({ message: 'Type, amount, and description are required' });
     }
 
+    // [CAT-PAGE ADDED] Validate category presence
+    if (!category) {
+      return res.status(400).json({
+        message: 'Category is required'
+      });
+    }
+
+    // [CAT-PAGE MODIFIED] Include category when creating
     const transaction = await Transaction.create({
       user: req.user.id,
       type,
       amount,
       description,
+      category,
       date: date || Date.now(),
     });
 
@@ -39,7 +68,8 @@ exports.createTransaction = async (req, res) => {
 exports.updateTransaction = async (req, res) => {
   try {
     const transactionId = req.params.id;
-    const { type, amount, description, date } = req.body;
+    // [CAT-PAGE MODIFIED] Include category in allowed updates
+    const { type, amount, description, category, date } = req.body;
 
     const transaction = await Transaction.findOne({
       _id: transactionId,
@@ -53,6 +83,7 @@ exports.updateTransaction = async (req, res) => {
     transaction.type = type || transaction.type;
     transaction.amount = amount !== undefined ? amount : transaction.amount;
     transaction.description = description || transaction.description;
+    transaction.category = category || transaction.category;
     transaction.date = date || transaction.date;
 
     await transaction.save();

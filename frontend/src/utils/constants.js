@@ -37,3 +37,33 @@ export const SETTINGS_TABS = {
   PROFILE:  'profile',
   PASSWORD: 'password'
 };
+
+// [CAT-PAGE ADDED] Income category options
+export const INCOME_CATEGORIES = [
+  'Salary',
+  'Freelance',
+  'Business',
+  'Investment',
+  'Other Income'
+];
+
+// [CAT-PAGE ADDED] Expense category options
+export const EXPENSE_CATEGORIES = [
+  'Food & Dining',
+  'Transportation',
+  'Bills & Utilities',
+  'Shopping',
+  'Healthcare',
+  'Entertainment',
+  'Education',
+  'Other Expense'
+];
+
+// [CAT-PAGE ADDED] Combined list for filter dropdown
+export const ALL_CATEGORIES = [
+  ...INCOME_CATEGORIES,
+  ...EXPENSE_CATEGORIES
+];
+
+// [CAT-PAGE ADDED] Default transactions per page
+export const DEFAULT_PAGE_LIMIT = 10;

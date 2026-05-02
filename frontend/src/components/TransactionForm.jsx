@@ -1,17 +1,20 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api/axios.js';
+// [CAT-PAGE ADDED]
+import { INCOME_CATEGORIES, EXPENSE_CATEGORIES } from '../utils/constants.js';
 
 // ============================================================
 // FILE: components/TransactionForm.jsx
 // PURPOSE: Form for adding and editing transactions
-// PHASE: UI Update
-// CHANGES: Added documentation for onSuccess callback usage
+// PHASE: UI Update & Categories
+// CHANGES: Added category dropdown and validation
 // ============================================================
 
 const initialState = {
   description: '',
   amount: 0,
   type: 'income',
+  category: '',
   date: new Date().toISOString().slice(0, 10),
 };
 
@@ -19,7 +22,7 @@ const initialState = {
 // PURPOSE: Renders a form for creating or editing a transaction
 // PARAMS:
 //   transaction (object|null) — transaction to edit, or null for new
-//   onSuccess (function)      — [UI UPDATE ADDED] called after successful save
+//   onSuccess (function)      — called after successful save
 // RETURNS: Form element with inputs and validation
 const TransactionForm = ({ transaction, onSuccess }) => {
   const [formState, setFormState] = useState(initialState);
@@ -32,6 +35,8 @@ const TransactionForm = ({ transaction, onSuccess }) => {
         description: transaction.description,
         amount: transaction.amount,
         type: transaction.type,
+        // [CAT-PAGE ADDED] Include category from transaction
+        category: transaction.category || '',
         date: transaction.date ? transaction.date.slice(0, 10) : new Date().toISOString().slice(0, 10),
       });
       return;
@@ -39,20 +44,58 @@ const TransactionForm = ({ transaction, onSuccess }) => {
     setFormState(initialState);
   }, [transaction]);
 
+  // [CAT-PAGE ADDED] Options change based on selected type
+  // WHY: Income and expense have different relevant categories
+  const categoryOptions = formState.type === 'income'
+    ? INCOME_CATEGORIES
+    : EXPENSE_CATEGORIES;
+
+  // [CAT-PAGE ADDED] Reset category when type changes
+  // WHY: Previously selected category may not belong to new type
+  const handleTypeChange = (e) => {
+    setFormState(prev => ({
+      ...prev,
+      type: e.target.value,
+      category: ''
+    }));
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormState(prev => ({
+      ...prev,
+      [name]: name === 'amount' ? parseFloat(value) || 0 : value
+    }));
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError('');
+
+    // [CAT-PAGE ADDED] Validate category before API call
+    if (!formState.category) {
+      setError('Please select a category');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
+      // [CAT-PAGE MODIFIED] Include category in request payload
+      const payload = {
+        type:        formState.type,
+        amount:      formState.amount,
+        description: formState.description,
+        category:    formState.category,
+        date:        formState.date
+      };
+
       if (transaction) {
-        await api.put(`/api/transactions/${transaction._id}`, formState);
+        await api.put(`/api/transactions/${transaction._id}`, payload);
       } else {
-        await api.post('/api/transactions', formState);
+        await api.post('/api/transactions', payload);
       }
       setFormState(initialState);
-      // [UI UPDATE ADDED] Call onSuccess callback after successful save
-      // This tells parent component (Dashboard) to close modal and refresh
       onSuccess();
     } catch (requestError) {
       setError(requestError.response?.data?.message || 'Failed to save transaction.');
@@ -69,8 +112,9 @@ const TransactionForm = ({ transaction, onSuccess }) => {
           Description
           <input
             type="text"
+            name="description"
             value={formState.description}
-            onChange={(event) => setFormState({ ...formState, description: event.target.value })}
+            onChange={handleChange}
             required
           />
         </label>
@@ -78,29 +122,49 @@ const TransactionForm = ({ transaction, onSuccess }) => {
           Amount
           <input
             type="number"
+            name="amount"
             min="0"
             step="0.01"
             value={formState.amount}
-            onChange={(event) => setFormState({ ...formState, amount: Number(event.target.value) })}
+            onChange={handleChange}
             required
           />
         </label>
         <label>
           Type
           <select
+            name="type"
             value={formState.type}
-            onChange={(event) => setFormState({ ...formState, type: event.target.value })}
+            onChange={handleTypeChange}
           >
             <option value="income">Income</option>
             <option value="expense">Expense</option>
           </select>
         </label>
+
+        {/* [CAT-PAGE ADDED] Category dropdown — place after Type field */}
+        <label>
+          Category
+          <select
+            name="category"
+            value={formState.category}
+            onChange={handleChange}
+            required
+          >
+            <option value="">Select a category</option>
+            {categoryOptions.map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
+        </label>
+
         <label>
           Date
           <input
             type="date"
+            name="date"
             value={formState.date}
-            onChange={(event) => setFormState({ ...formState, date: event.target.value })}
+            onChange={handleChange}
             required
           />
         </label>

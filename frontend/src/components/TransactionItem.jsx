@@ -36,6 +36,9 @@ const TransactionItem = ({ transaction, onEdit, onDelete }) => {
     <tr className="transaction-row">
       <td className="col-date">{dateString}</td>
       <td className="col-description">{transaction.description}</td>
+      {/* [CAT-PAGE ADDED] Category cell */}
+      {/* Optional chaining handles old transactions with no category */}
+      <td className="col-category">{transaction.category || '—'}</td>
       <td className="col-type">
         <span className={`type-badge ${transaction.type}`}>
           {isIncome ? 'Income' : 'Expense'}

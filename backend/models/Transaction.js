@@ -21,6 +21,13 @@ const transactionSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Description is required'],
   },
+  // [CAT-PAGE ADDED] Category classifies the transaction
+  // Validated in controller not model for flexibility
+  category: {
+    type: String,
+    required: [true, 'Category is required'],
+    trim: true
+  },
   date: {
     type: Date,
     default: Date.now,

@@ -65,6 +65,13 @@
   white-space: nowrap;
 }
 
+/* [CAT-PAGE ADDED] Category column */
+.col-category {
+  width: 140px;
+  color: #666;
+  font-size: 0.9rem;
+}
+
 .col-type {
   width: 100px;
 }

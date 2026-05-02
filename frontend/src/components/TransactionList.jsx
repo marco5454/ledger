@@ -39,6 +39,8 @@ const TransactionList = ({ transactions, onEdit, onDelete }) => {
         <tr>
           <th className="col-date">Date</th>
           <th className="col-description">Description</th>
+          {/* [CAT-PAGE ADDED] Category column header */}
+          <th className="col-category">Category</th>
           <th className="col-type">Type</th>
           <th className="col-amount">Amount</th>
           <th className="col-actions">Actions</th>
@@ -66,6 +68,9 @@ const TransactionList = ({ transactions, onEdit, onDelete }) => {
 
               {/* Description cell */}
               <td className="col-description">{transaction.description}</td>
+
+              {/* [CAT-PAGE ADDED] Category cell */}
+              <td className="col-category">{transaction.category || '—'}</td>
 
               {/* Type badge cell */}
               <td className="col-type">

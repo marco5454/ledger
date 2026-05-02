@@ -360,16 +360,139 @@
   font-size: 0.9rem;
 }
 
+/* Admin Dashboard Container */
+.dashboard-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  background-color: #FFFAF0;
+  min-height: 100vh;
+}
+
+.dashboard-container > h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 1.5rem 0;
+  color: #1a1a1a;
+}
+
+/* Admin Header with Logout */
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #d0d0d0;
+}
+
+.admin-header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+  color: #1a1a1a;
+}
+
+.admin-logout-btn {
+  background-color: #E03F4F;
+  color: white;
+  border: 2px outset #E03F4F;
+  padding: 0.5rem 1.25rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: auto;
+}
+
+.admin-logout-btn:hover {
+  background-color: #c73545;
+  border-color: #c73545;
+}
+
+.admin-logout-btn:active {
+  border-style: inset;
+}
+
+/* Admin Stats Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.stat-card {
+  background: white;
+  border: 2px outset #d0d0d0;
+  padding: 1.25rem;
+  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.stat-card h3 {
+  margin: 0 0 0.5rem 0;
+  color: #666;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.stat-card .stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0;
+  color: #1a1a1a;
+}
+
+.stat-card.income .stat-value {
+  color: #81912F;
+}
+
+.stat-card.expense .stat-value {
+  color: #E03F4F;
+}
+
+/* Latest Registration Card */
+.latest-registration {
+  background: white;
+  border: 2px outset #d0d0d0;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.latest-registration h3 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.latest-registration .user-info p {
+  margin: 0.25rem 0;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.latest-registration .registration-date {
+  color: #666;
+  font-size: 0.85rem;
+}
+
 /* Admin Users Section */
 .users-section {
-  margin-top: 2rem;
+  margin-top: 1.5rem;
 }
 
 .users-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
   gap: 1rem;
   flex-wrap: wrap;
 }
@@ -377,7 +500,7 @@
 .users-header h2 {
   margin: 0;
   color: #1a1a1a;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 700;
 }
 
@@ -431,7 +554,7 @@
 .users-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
 }
 
 .users-table thead {
@@ -440,11 +563,12 @@
 }
 
 .users-table th {
-  padding: 1rem;
+  padding: 0.75rem;
   text-align: left;
   font-weight: 600;
   color: #333;
   white-space: nowrap;
+  font-size: 0.85rem;
 }
 
 .users-table tbody tr {
@@ -457,8 +581,9 @@
 }
 
 .users-table td {
-  padding: 1rem;
+  padding: 0.75rem;
   color: #666;
+  font-size: 0.875rem;
 }
 
 .users-table td.income {
@@ -478,12 +603,13 @@
 
 .btn-view,
 .btn-delete {
-  padding: 0.4rem 0.8rem;
+  padding: 0.4rem 0.75rem;
   border: 2px outset;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  width: auto;
 }
 
 .btn-view {
@@ -516,8 +642,42 @@
   border-style: inset;
 }
 
+/* Loading State */
+.loading {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+  font-size: 1rem;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
+  .dashboard-container {
+    padding: 1rem;
+  }
+
+  .dashboard-container > h1 {
+    font-size: 1.25rem;
+  }
+
+  .admin-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .admin-header h1 {
+    font-size: 1.25rem;
+  }
+
+  .admin-logout-btn {
+    width: 100%;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
   .dashboard-top-bar {
     flex-direction: column;
     align-items: flex-start;
@@ -590,16 +750,18 @@
 
   .users-table th,
   .users-table td {
-    padding: 0.75rem 0.5rem;
+    padding: 0.6rem 0.4rem;
   }
 
   .action-buttons {
     flex-direction: column;
+    gap: 0.25rem;
   }
 
   .btn-view,
   .btn-delete {
     width: 100%;
+    font-size: 0.75rem;
   }
 }
 

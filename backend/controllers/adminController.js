@@ -55,9 +55,10 @@ exports.getUserTransactions = async (req, res) => {
     return res.status(200).json({
       user: {
         _id: user._id,
-        name: user.name,
+        fullName: user.fullName,
         email: user.email,
         role: user.role,
+        currency: user.currency,
         createdAt: user.createdAt
       },
       transactions

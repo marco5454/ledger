@@ -9,6 +9,7 @@ import { useContext, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api/axios.js';
 import { AuthContext } from '../context/AuthContext.jsx';
+import { CURRENCY_SYMBOLS } from '../utils/constants.js';
 import Navbar from '../components/Navbar.jsx';
 
 const UserDetail = () => {
@@ -76,6 +77,8 @@ const UserDetail = () => {
 
   const netBalance = totalIncome - totalExpenses;
 
+  const symbol = CURRENCY_SYMBOLS[user.currency] || '₱';
+
   return (
     <div className="user-detail">
       <Navbar onLogout={logout} />
@@ -126,7 +129,7 @@ const UserDetail = () => {
                     </span>
                     <span>{transaction.description}</span>
                     <span className={transaction.type === 'income' ? 'positive' : 'negative'}>
-                      ${transaction.amount.toFixed(2)}
+                      {symbol}{transaction.amount.toFixed(2)}
                     </span>
                   </div>
                 ))}
@@ -136,16 +139,16 @@ const UserDetail = () => {
               <div className="totals-row">
                 <div className="total-item">
                   <span>Total Income</span>
-                  <p className="positive">${totalIncome.toFixed(2)}</p>
+                  <p className="positive">{symbol}{totalIncome.toFixed(2)}</p>
                 </div>
                 <div className="total-item">
                   <span>Total Expenses</span>
-                  <p className="negative">${totalExpenses.toFixed(2)}</p>
+                  <p className="negative">{symbol}{totalExpenses.toFixed(2)}</p>
                 </div>
                 <div className="total-item">
                   <span>Net Balance</span>
                   <p className={netBalance >= 0 ? 'positive' : 'negative'}>
-                    ${netBalance.toFixed(2)}
+                    {symbol}{netBalance.toFixed(2)}
                   </p>
                 </div>
               </div>

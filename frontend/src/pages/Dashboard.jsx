@@ -1,7 +1,6 @@
 import { useCallback, useContext, useEffect, useState } from 'react';
 import { api } from '../api/axios.js';
 import { AuthContext } from '../context/AuthContext.jsx';
-import { CURRENCY_SYMBOLS } from '../utils/constants.js';
 import Navbar from '../components/Navbar.jsx';
 import BalanceSummary from '../components/BalanceSummary.jsx';
 import TransactionForm from '../components/TransactionForm.jsx';

@@ -31,7 +31,9 @@ const MonthlySummary = ({ transactions }) => {
         <div className="monthly-summary-header">
           <h3>Monthly Summary</h3>
         </div>
-        <p className="empty-state">Loading monthly summary...</p>
+        <div className="loading-overlay">
+          <div className="spinner spinner-accent"></div>
+        </div>
       </section>
     );
   }

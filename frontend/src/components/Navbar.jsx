@@ -3,12 +3,9 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext.jsx';
 
 const Navbar = () => {
-  const { role, fullName, logout } = useContext(AuthContext);
+  const { role, logout } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
-
-  // Extract first name for display
-  const displayName = fullName ? fullName.split(' ')[0] : 'User';
 
   const handleLogout = () => {
     logout();
@@ -20,11 +17,20 @@ const Navbar = () => {
     return location.pathname === path;
   };
 
+  // Get current date formatted
+  const today = new Date();
+  const formattedDate = today.toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+
   return (
     <header className="navbar">
       <div className="navbar-brand">
         <h1>MyLedger</h1>
-        <p className="subtitle">Welcome, {displayName}!</p>
+        <p className="subtitle">{formattedDate}</p>
       </div>
       <nav className="navbar-nav">
         {role === 'admin' ? (

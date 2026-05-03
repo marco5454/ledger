@@ -165,7 +165,9 @@ const AdminDashboard = () => {
   if (loading) {
     return (
       <div className="dashboard-container">
-        <div className="loading">Loading dashboard...</div>
+        <div className="loading-overlay">
+          <div className="loading-spinner-large"></div>
+        </div>
       </div>
     );
   }

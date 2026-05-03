@@ -32,9 +32,9 @@ const Modal = ({ isOpen, onClose, title, children }) => {
   }
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-overlay" onClick={onClose}>
       {/* [UI UPDATE ADDED] Modal card container */}
-      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         {/* [UI UPDATE ADDED] Modal header with title and close button */}
         <div className="modal-header">
           <h2>{title}</h2>

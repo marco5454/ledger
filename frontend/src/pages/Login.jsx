@@ -17,10 +17,12 @@ const Login = () => {
   const [formState, setFormState] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError('');
+    setIsLoading(true);
 
     try {
       const response = await api.post('/api/auth/login', formState);
@@ -36,6 +38,8 @@ const Login = () => {
       }
     } catch (requestError) {
       setError(requestError.response?.data?.message || 'Login failed.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -103,7 +107,11 @@ const Login = () => {
 
               {error && <p className="error-message">{error}</p>}
 
-              <button type="submit" className="btn-auth-primary">
+              <button 
+                type="submit" 
+                className={`btn-auth-primary ${isLoading ? 'loading' : ''}`}
+                disabled={isLoading}
+              >
                 Sign In
               </button>
             </form>

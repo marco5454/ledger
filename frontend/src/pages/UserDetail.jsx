@@ -41,7 +41,9 @@ const UserDetail = () => {
   if (loading) {
     return (
       <div className="page-container">
-        <p>Loading user details...</p>
+        <div className="loading-overlay">
+          <div className="loading-spinner-large"></div>
+        </div>
       </div>
     );
   }

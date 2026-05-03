@@ -316,26 +316,31 @@ const AdminDashboard = () => {
                       ₱{user.netBalance.toFixed(2)}
                     </td>
                     <td>
-                      <div className="action-buttons">
-                        <button
-                          onClick={() => handleRoleChange(user._id, user.role)}
-                          className="btn-role-switch"
-                          title={`Switch to ${user.role === 'admin' ? 'user' : 'admin'}`}
-                        >
-                          ⇄
-                        </button>
-                        <button
+                      <div className="action-links">
+                        <a
                           onClick={() => handleViewUser(user._id)}
-                          className="btn-view"
+                          className="action-link"
+                          style={{ cursor: 'pointer' }}
                         >
                           View
-                        </button>
-                        <button
-                          onClick={() => handleDeleteUser(user._id)}
-                          className="btn-delete"
+                        </a>
+                        <span className="action-separator">|</span>
+                        <a
+                          onClick={() => handleRoleChange(user._id, user.role)}
+                          className="action-link"
+                          style={{ cursor: 'pointer' }}
+                          title={`Switch to ${user.role === 'admin' ? 'user' : 'admin'}`}
                         >
-                          Delete
-                        </button>
+                          Update Role
+                        </a>
+                        <span className="action-separator">|</span>
+                        <a
+                          onClick={() => handleDeleteUser(user._id)}
+                          className="action-link delete"
+                          style={{ cursor: 'pointer' }}
+                        >
+                          Remove
+                        </a>
                       </div>
                     </td>
                   </tr>

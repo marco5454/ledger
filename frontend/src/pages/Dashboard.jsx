@@ -1,447 +1,185 @@
-import { useCallback, useContext, useEffect, useState, useMemo } from 'react';
-import { api } from '../api/axios.js';
-import { AuthContext } from '../context/AuthContext.jsx';
-import BalanceSummary from '../components/BalanceSummary.jsx';
-import TransactionForm from '../components/TransactionForm.jsx';
-import TransactionList from '../components/TransactionList.jsx';
-import Modal from '../components/Modal.jsx'; // [UI UPDATE ADDED]
-// [CAT-PAGE ADDED]
-import { ALL_CATEGORIES, DEFAULT_PAGE_LIMIT } from '../utils/constants.js';
-// [SORT-MONTHLY ADDED]
-import MonthlySummary from '../components/MonthlySummary.jsx';
-// [CSV ADDED] Import export utility
+import { useState, useEffect, useContext } from 'react';
+import { api } from '../api/axios';
+import { AuthContext } from '../context/AuthContext';
 import { exportTransactionsToCSV } from '../utils/exportCSV';
+import BalanceSummary from '../components/BalanceSummary';
+import MonthlySummary from '../components/MonthlySummary';
+import BudgetSummary from '../components/BudgetSummary';
+import TransactionList from '../components/TransactionList';
+import TransactionForm from '../components/TransactionForm';
+import ExportMenu from '../components/ExportMenu';
+import Modal from '../components/Modal';
 
-const Dashboard = () => {
-  // [SETTINGS MODIFIED] Read fullName and currency from context
-  const { fullName, currency } = useContext(AuthContext);
+function Dashboard() {
+  const { currency } = useContext(AuthContext);
   const [transactions, setTransactions] = useState([]);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  // [UI UPDATE ADDED] Modal state for add/edit transaction
-  const [showModal, setShowModal] = useState(false);
-  
-  // [UI UPDATE ADDED] Track which transaction is being edited
-  // null means we are adding a new transaction
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
+  const [budgetRefreshKey, setBudgetRefreshKey] = useState(0);
 
-  // [CAT-PAGE ADDED] Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages]   = useState(1);
-  const [totalCount, setTotalCount]   = useState(0);
-
-  // [CAT-PAGE ADDED] Filter state
-  const [searchQuery,      setSearchQuery]      = useState('');
-  const [filterType,       setFilterType]       = useState('all');
-  const [filterCategory,   setFilterCategory]   = useState('all');
-  const [filterDateFrom,   setFilterDateFrom]   = useState('');
-  const [filterDateTo,     setFilterDateTo]     = useState('');
-
-  // [SORT-MONTHLY ADDED] Sort state
-  const [sortField, setSortField] = useState('date');
-  const [sortDirection, setSortDirection] = useState('desc');
-
-  // [CAT-PAGE ADDED] Full dataset for balance summary
-  // Separate from paginated transactions so balance totals
-  // always reflect ALL records not just the current page
-  const [allTransactions, setAllTransactions]   = useState([]);
-
-  // [CAT-PAGE MODIFIED] fetchTransactions()
-  // PURPOSE: Fetches one page of transactions
-  // Also fetches full dataset separately for balance summary
-  const fetchTransactions = useCallback(async (page = 1) => {
+  const fetchTransactions = async (signal) => {
     try {
       setLoading(true);
-
-      // Paginated fetch for the table
-      const res = await api.get(
-        `/api/transactions?page=${page}&limit=${DEFAULT_PAGE_LIMIT}`
-      );
-      setTransactions(res.data.transactions);
-      setTotalPages(res.data.totalPages);
-      setTotalCount(res.data.totalCount);
-      setCurrentPage(res.data.currentPage);
-
-      // [CAT-PAGE ADDED] Full fetch for balance summary only
-      // Uses high limit to get all records in one call
-      const allRes = await api.get(
-        `/api/transactions?page=1&limit=9999`
-      );
-      setAllTransactions(allRes.data.transactions);
-
-    } catch (requestError) {
-      setError(requestError.response?.data?.message || 'Unable to load transactions.');
+      setError(null);
+      const response = await api.get('/api/transactions', { signal });
+      
+      // Debug: log the response structure
+      console.log('API Response:', response.data);
+      console.log('Is Array?', Array.isArray(response.data));
+      console.log('Has transactions property?', response.data?.transactions);
+      
+      // Handle both response formats: array or object with transactions property
+      let transactionsData = [];
+      if (Array.isArray(response.data)) {
+        transactionsData = response.data;
+      } else if (response.data && Array.isArray(response.data.transactions)) {
+        transactionsData = response.data.transactions;
+      }
+      
+      console.log('Final transactions array:', transactionsData);
+      setTransactions(transactionsData);
+    } catch (err) {
+      if (err.name !== 'CanceledError') {
+        setError(err.response?.data?.message || 'Failed to load transactions');
+        console.error('Error fetching transactions:', err);
+      }
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
   useEffect(() => {
-    fetchTransactions(currentPage);
-  }, [currentPage, fetchTransactions]);
+    const abortController = new AbortController();
+    fetchTransactions(abortController.signal);
+    
+    return () => abortController.abort();
+  }, []);
 
-  // [CAT-PAGE ADDED] filteredTransactions
-  // PURPOSE: Applies all active filters to current page data
-  // Runs on frontend — no extra API call needed
-  // useMemo prevents recalculation on unrelated re-renders
-  const filteredTransactions = useMemo(() => {
-    let filtered = transactions.filter(t => {
-
-      const matchesSearch =
-        searchQuery === '' ||
-        t.description.toLowerCase()
-          .includes(searchQuery.toLowerCase()) ||
-        t.category?.toLowerCase()
-          .includes(searchQuery.toLowerCase());
-
-      const matchesType =
-        filterType === 'all' || t.type === filterType;
-
-      const matchesCategory =
-        filterCategory === 'all' || t.category === filterCategory;
-
-      const txDate = new Date(t.date);
-      const matchesFrom =
-        filterDateFrom === '' ||
-        txDate >= new Date(filterDateFrom);
-      const matchesTo =
-        filterDateTo === '' ||
-        txDate <= new Date(filterDateTo);
-
-      return matchesSearch && matchesType &&
-             matchesCategory && matchesFrom && matchesTo;
-    });
-
-    // [SORT-MONTHLY ADDED] Apply sorting
-    filtered.sort((a, b) => {
-      let aVal, bVal;
-
-      switch (sortField) {
-        case 'date':
-          aVal = new Date(a.date);
-          bVal = new Date(b.date);
-          break;
-        case 'category':
-          aVal = a.category || '';
-          bVal = b.category || '';
-          break;
-        case 'amount':
-          aVal = a.amount;
-          bVal = b.amount;
-          break;
-        default:
-          return 0;
-      }
-
-      if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
-      if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
-      return 0;
-    });
-
-    return filtered;
-  }, [
-    transactions, searchQuery, filterType,
-    filterCategory, filterDateFrom, filterDateTo,
-    sortField, sortDirection
-  ]);
-
-  // [CAT-PAGE ADDED] hasActiveFilters
-  // PURPOSE: Controls visibility of Clear Filters button
-  const hasActiveFilters =
-    searchQuery || filterType !== 'all' ||
-    filterCategory !== 'all' ||
-    filterDateFrom || filterDateTo;
-
-  // [CAT-PAGE ADDED] handleClearFilters()
-  // PURPOSE: Resets all filter and search state to defaults
-  const handleClearFilters = () => {
-    setSearchQuery('');
-    setFilterType('all');
-    setFilterCategory('all');
-    setFilterDateFrom('');
-    setFilterDateTo('');
-  };
-
-  // [SORT-MONTHLY ADDED] handleSort()
-  // PURPOSE: Toggles sort direction or changes sort field
-  // PARAMS: field (string) - 'date', 'category', or 'amount'
-  const handleSort = (field) => {
-    if (sortField === field) {
-      // Toggle direction if same field
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      // New field, default to desc
-      setSortField(field);
-      setSortDirection('desc');
-    }
-  };
-
-  // [CAT-PAGE ADDED] handlePageChange()
-  // PURPOSE: Updates current page — triggers useEffect refetch
-  // PARAMS: newPage (number)
-  const handlePageChange = (newPage) => {
-    if (newPage < 1 || newPage > totalPages) return;
-    setCurrentPage(newPage);
-  };
-
-  // [UI UPDATE ADDED] FUNCTION: handleAddClick()
-  // PURPOSE: Opens modal in "add" mode
-  // Sets showModal true and clears editingTransaction
-  const handleAddClick = () => {
+  const handleTransactionAdded = () => {
+    setIsModalOpen(false);
     setEditingTransaction(null);
-    setShowModal(true);
+    const abortController = new AbortController();
+    fetchTransactions(abortController.signal);
+    setBudgetRefreshKey(prev => prev + 1); // Force budget summary to refresh
   };
 
-  // [UI UPDATE ADDED] FUNCTION: handleEditClick()
-  // PURPOSE: Opens modal in "edit" mode with transaction data
-  // PARAMS: transaction (object) — the transaction to edit
-  const handleEditClick = (transaction) => {
-    setEditingTransaction(transaction);
-    setShowModal(true);
-  };
-
-  // [UI UPDATE ADDED] FUNCTION: handleModalClose()
-  // PURPOSE: Closes modal and clears editing state
-  const handleModalClose = () => {
-    setShowModal(false);
-    setEditingTransaction(null);
-  };
-
-  // [UI UPDATE ADDED] FUNCTION: handleTransactionSaved()
-  // PURPOSE: Called after form saves successfully
-  // Closes modal and refreshes transaction list
-  const handleTransactionSaved = async () => {
-    handleModalClose();
-    setCurrentPage(1);
-    await fetchTransactions(1);
-  };
-
-  // FUNCTION: handleDeleteTransaction()
-  // PURPOSE: Delete a transaction after user confirmation
-  // PARAMS: transactionId (string) — the ID to delete
-  const handleDeleteTransaction = async (transactionId) => {
-    if (!window.confirm('Delete this transaction?')) {
+  const handleTransactionDeleted = async (transactionId) => {
+    if (!window.confirm('Are you sure you want to delete this transaction?')) {
       return;
     }
+    
     try {
       await api.delete(`/api/transactions/${transactionId}`);
-      await fetchTransactions(currentPage);
-    } catch (requestError) {
-      setError(requestError.response?.data?.message || 'Delete failed.');
+      const abortController = new AbortController();
+      fetchTransactions(abortController.signal);
+      setBudgetRefreshKey(prev => prev + 1); // Force budget summary to refresh
+    } catch (err) {
+      console.error('Error deleting transaction:', err);
+      alert(err.response?.data?.message || 'Failed to delete transaction');
     }
   };
 
-  // FUNCTION: handleExportCSV()
-  // PURPOSE: Determines which dataset to export then calls
-  //          the CSV utility function
-  // If filters are active: export filteredTransactions
-  //   WHY: User filtered for a reason — export what they see
-  // If no filters active: export allTransactions
-  //   WHY: Full history export when nothing is filtered
-  // Filename reflects what was exported for clarity
-  const handleExportCSV = () => {
-    // [CSV ADDED]
-    const dataToExport = hasActiveFilters
-      ? filteredTransactions
-      : allTransactions;
-
-    const filename = hasActiveFilters
-      ? 'filtered_transactions'
-      : 'all_transactions';
-
-    exportTransactionsToCSV(dataToExport, currency, filename);
+  const handleTransactionEdit = (transaction) => {
+    setEditingTransaction(transaction);
+    setIsModalOpen(true);
   };
 
-  return (
-    <div className="dashboard-page">
-      {/* [UI UPDATE MODIFIED] Main content area */}
-      <main className="dashboard-content">
-        {/* Balance summary cards - PROMINENT */}
-        {/* [CAT-PAGE MODIFIED] Use full dataset for accurate totals */}
-        <div className="balance-summary-wrapper">
-          <BalanceSummary transactions={allTransactions} />
-          <button
-            className="btn-add-transaction-compact"
-            onClick={handleAddClick}
-            title="Add new transaction"
-          >
-            + Add Transaction
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setEditingTransaction(null);
+  };
+
+  const handleExport = (option) => {
+    if (transactions.length === 0) {
+      alert('No transactions to export');
+      return;
+    }
+
+    switch (option) {
+      case 'all':
+        exportTransactionsToCSV(transactions, currency, 'all_transactions');
+        break;
+      case 'current-month':
+        const now = new Date();
+        const currentMonth = transactions.filter(t => {
+          const tDate = new Date(t.date);
+          return tDate.getMonth() === now.getMonth() && 
+                 tDate.getFullYear() === now.getFullYear();
+        });
+        exportTransactionsToCSV(currentMonth, currency, 'current_month_transactions');
+        break;
+      default:
+        exportTransactionsToCSV(transactions, currency, 'transactions');
+    }
+  };
+
+  const exportOptions = [
+    { value: 'all', label: 'Export All Transactions' },
+    { value: 'current-month', label: 'Export Current Month' }
+  ];
+
+  if (loading) {
+    return (
+      <div className="dashboard-container">
+        <div className="loading-container">
+          <div className="spinner"></div>
+          <p>Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="dashboard-container">
+        <div className="error-container">
+          <p className="error-message">{error}</p>
+          <button onClick={() => fetchTransactions()} className="btn-retry">
+            Retry
           </button>
         </div>
+      </div>
+    );
+  }
 
-        {/* [SORT-MONTHLY ADDED] Monthly summary section */}
-        <MonthlySummary transactions={allTransactions} />
-
-        {/* Error message */}
-        {error && <p className="error-message">{error}</p>}
-
-        {/* [CAT-PAGE ADDED] Search and filter controls */}
-        <section className="filters-section">
-          <div className="filter-controls">
-            {/* [CAT-PAGE ADDED] Search input */}
-            <input
-              type="text"
-              placeholder="Search description or category..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="search-input"
-            />
-
-            {/* [CAT-PAGE ADDED] Filter controls */}
-            <select
-              value={filterType}
-              onChange={e => setFilterType(e.target.value)}
-              className="filter-select"
-            >
-              <option value="all">All Types</option>
-              <option value="income">Income</option>
-              <option value="expense">Expense</option>
-            </select>
-
-            <select
-              value={filterCategory}
-              onChange={e => setFilterCategory(e.target.value)}
-              className="filter-select"
-            >
-              <option value="all">All Categories</option>
-              {ALL_CATEGORIES.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
-
-            <input
-              type="date"
-              value={filterDateFrom}
-              onChange={e => setFilterDateFrom(e.target.value)}
-              className="filter-input"
-              title="From date"
-              placeholder="Start Date"
-            />
-            <input
-              type="date"
-              value={filterDateTo}
-              onChange={e => setFilterDateTo(e.target.value)}
-              className="filter-input"
-              title="To date"
-              placeholder="End Date"
-            />
-
-            {hasActiveFilters && (
-              <button
-                onClick={handleClearFilters}
-                className="btn-clear-filters"
-              >
-                Clear Filters
-              </button>
-            )}
+  return (
+    <>
+      <div className="dashboard-container">
+        <div className="dashboard-header">
+          <h1>Dashboard</h1>
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            <ExportMenu onExport={handleExport} options={exportOptions} />
+            <button onClick={() => setIsModalOpen(true)} className="btn-primary">
+              Add Transaction
+            </button>
           </div>
+        </div>
 
-          {/* [CAT-PAGE ADDED] Results count */}
-          <p className="results-count">
-            Showing {filteredTransactions.length} of {totalCount} transactions
-            {hasActiveFilters && ' (filtered)'}
-          </p>
-        </section>
+        <div className="dashboard-grid">
+          <BalanceSummary transactions={transactions} />
+          <MonthlySummary transactions={transactions} />
+        </div>
 
-        {/* [UI UPDATE ADDED] Transaction history section */}
-        <section className="transactions-section">
-          <div className="section-header">
-            <div className="section-header-left">
-              <h3>Transaction History <span className="transaction-count">({filteredTransactions.length})</span></h3>
-            </div>
-            <div className="section-header-right">
-              <button onClick={handleExportCSV} className="btn-export-csv">
-                Export CSV ↓
-              </button>
-              <p className="export-info">
-                {hasActiveFilters
-                  ? `Exports ${filteredTransactions.length} filtered transactions`
-                  : `Exports all ${allTransactions.length} transactions`
-                }
-              </p>
-            </div>
-          </div>
+        <BudgetSummary key={budgetRefreshKey} />
 
-          {/* [CAT-PAGE MODIFIED] Table uses filtered list */}
-          <TransactionList
-            transactions={filteredTransactions}
-            onEdit={handleEditClick}
-            onDelete={handleDeleteTransaction}
-            sortField={sortField}
-            sortDirection={sortDirection}
-            onSort={handleSort}
-          />
+      <TransactionList 
+        transactions={transactions} 
+        onTransactionDeleted={handleTransactionDeleted}
+        onTransactionEdit={handleTransactionEdit}
+      />
 
-          {/* [CAT-PAGE ADDED] Pagination — only show if more than 1 page */}
-          {totalPages > 1 && (
-            <div className="pagination-controls">
-              <button
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                className="pagination-btn"
-              >
-                Previous
-              </button>
-
-              {/* Page number buttons — max 5 visible at a time */}
-              <div className="page-numbers">
-                {Array.from({ length: totalPages }, (_, i) => i + 1)
-                  .filter(page =>
-                    page === 1 ||
-                    page === totalPages ||
-                    Math.abs(page - currentPage) <= 2
-                  )
-                  .map((page, index, arr) => (
-                    <div key={page}>
-                      {index > 0 && arr[index-1] !== page - 1 && (
-                        <span className="ellipsis">...</span>
-                      )}
-                      <button
-                        onClick={() => handlePageChange(page)}
-                        disabled={page === currentPage}
-                        className={`page-btn ${page === currentPage ? 'active' : ''}`}
-                      >
-                        {page}
-                      </button>
-                    </div>
-                  ))
-                }
-              </div>
-
-              <button
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className="pagination-btn"
-              >
-                Next
-              </button>
-            </div>
-          )}
-
-          {/* Page info */}
-          {totalPages > 1 && (
-            <p className="page-info">
-              Page {currentPage} of {totalPages}
-            </p>
-          )}
-        </section>
-      </main>
-
-      {/* [UI UPDATE ADDED] Modal for add/edit transaction */}
-      <Modal
-        isOpen={showModal}
-        onClose={handleModalClose}
-        title={editingTransaction ? 'Edit Transaction' : 'Add Transaction'}
-      >
-        <TransactionForm
+      <Modal isOpen={isModalOpen} onClose={handleModalClose}>
+        <TransactionForm 
           transaction={editingTransaction}
-          onSuccess={handleTransactionSaved}
+          onSuccess={handleTransactionAdded} 
         />
       </Modal>
+      </div>
 
       {/* Minimalist Footer */}
-      <footer className="dashboard-footer">
+      <footer className="auth-page-footer">
         <div className="footer-content">
           <div className="footer-company">
             <p className="company-name">M.M I.T Solutions</p>
@@ -480,8 +218,8 @@ const Dashboard = () => {
           </div>
         </div>
       </footer>
-    </div>
+    </>
   );
-};
+}
 
 export default Dashboard;

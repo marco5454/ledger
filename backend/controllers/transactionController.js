@@ -1,5 +1,6 @@
 // Controller for transaction CRUD operations.
 const Transaction = require('../models/Transaction');
+const Budget = require('../models/Budget');
 
 // [CAT-PAGE MODIFIED] getTransactions()
 // PURPOSE: Returns paginated transactions for logged-in user

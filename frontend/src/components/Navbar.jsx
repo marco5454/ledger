@@ -1,9 +1,11 @@
 import { useContext } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext.jsx';
+import { ThemeContext } from '../context/ThemeContext.jsx';
 
 const Navbar = () => {
   const { role, logout } = useContext(AuthContext);
+  const { theme, toggleTheme } = useContext(ThemeContext);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -51,6 +53,18 @@ const Navbar = () => {
               Dashboard
             </Link>
             <Link 
+              to="/recurring" 
+              className={`nav-link ${isActive('/recurring') ? 'active' : ''}`}
+            >
+              Recurring
+            </Link>
+            <Link 
+              to="/budgets" 
+              className={`nav-link ${isActive('/budgets') ? 'active' : ''}`}
+            >
+              Budgets
+            </Link>
+            <Link 
               to="/settings" 
               className={`nav-link ${isActive('/settings') ? 'active' : ''}`}
             >
@@ -58,6 +72,14 @@ const Navbar = () => {
             </Link>
           </>
         )}
+        <button 
+          onClick={toggleTheme} 
+          className="btn-theme-toggle"
+          aria-label="Toggle theme"
+          title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+        >
+          {theme === 'light' ? '🌙' : '☀️'}
+        </button>
         <button onClick={handleLogout} className="btn-logout">
           Logout
         </button>

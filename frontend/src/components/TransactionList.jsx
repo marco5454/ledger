@@ -1,125 +1,258 @@
-// ============================================================
-// FILE: components/TransactionList.jsx
-// PURPOSE: Renders transactions in a clean table layout
-// PHASE: UI Update
-// CHANGES: Converted from card layout to table-based display
-// ============================================================
+import { useState, useMemo, useContext } from 'react';
+import { api } from '../api/axios';
+import { AuthContext } from '../context/AuthContext';
+import { exportTransactionsToCSV } from '../utils/exportCSV';
+import TransactionItem from './TransactionItem';
+import BulkActionsToolbar from './BulkActionsToolbar';
 
-import { useContext } from 'react';
-import { AuthContext } from '../context/AuthContext.jsx';
-import { CURRENCY_SYMBOLS } from '../utils/constants.js';
-
-// Minimal formatter for adding commas to numbers
-const formatAmount = (amount) => {
-  if (amount == null) return '0.00';
-  return Number(amount).toLocaleString('en-US', { 
-    minimumFractionDigits: 2, 
-    maximumFractionDigits: 2 
-  });
-};
-
-// FUNCTION: TransactionList()
-// PURPOSE: Renders all transactions as a formatted table
-// PARAMS:
-//   transactions (array)  — list of transaction objects
-//   onEdit (function)     — called with transaction object on edit
-//   onDelete (function)   — called with transaction._id on delete
-//   sortField (string)   — current sort field ('date', 'category', 'amount')
-//   sortDirection (string) — current sort direction ('asc', 'desc')
-//   onSort (function)    — called with field name to change sort
-// RETURNS: Table element with all transactions, or empty state
-
-const TransactionList = ({ transactions, onEdit, onDelete, sortField, sortDirection, onSort }) => {
+function TransactionList({ transactions = [], onTransactionDeleted, onTransactionEdit }) {
   const { currency } = useContext(AuthContext);
-  const symbol = CURRENCY_SYMBOLS[currency] || '₱';
+  const [filter, setFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('date-desc');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [isBulkMode, setIsBulkMode] = useState(false);
+  const itemsPerPage = 10;
 
-  // [SORT-MONTHLY ADDED] Helper function for sort indicators
-  const getSortIndicator = (field) => {
-    if (sortField !== field) return '';
-    return sortDirection === 'asc' ? ' ↑' : ' ↓';
+  const filteredAndSortedTransactions = useMemo(() => {
+    // Ensure transactions is an array
+    const txArray = Array.isArray(transactions) ? transactions : [];
+    let filtered = [...txArray];
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(t => 
+        t.description.toLowerCase().includes(query) ||
+        (t.category && t.category.toLowerCase().includes(query))
+      );
+    }
+
+    // Apply type filter
+    if (filter !== 'all') {
+      filtered = filtered.filter(t => t.type === filter);
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'date-desc':
+          return new Date(b.date) - new Date(a.date);
+        case 'date-asc':
+          return new Date(a.date) - new Date(b.date);
+        case 'amount-desc':
+          return b.amount - a.amount;
+        case 'amount-asc':
+          return a.amount - b.amount;
+        default:
+          return 0;
+      }
+    });
+
+    return filtered;
+  }, [transactions, filter, sortBy, searchQuery]);
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredAndSortedTransactions.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentTransactions = filteredAndSortedTransactions.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
+  useMemo(() => {
+    setCurrentPage(1);
+  }, [searchQuery, filter, sortBy]);
+
+  // Bulk operations handlers
+  const handleSelectAll = () => {
+    if (selectedIds.size === currentTransactions.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(currentTransactions.map(t => t._id)));
+    }
   };
 
-  // [UI UPDATE ADDED] Empty state handling
-  if (!transactions.length) {
-    return (
-      <div className="empty-state-container">
-        <p className="empty-state">No transactions yet.</p>
-      </div>
-    );
-  }
+  const handleSelectTransaction = (id) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
 
-  // [UI UPDATE ADDED] Render as table instead of card list
+  const handleBulkDelete = async () => {
+    if (!window.confirm(`Delete ${selectedIds.size} transaction(s)?`)) {
+      return;
+    }
+
+    try {
+      await Promise.all(
+        Array.from(selectedIds).map(id => api.delete(`/api/transactions/${id}`))
+      );
+      setSelectedIds(new Set());
+      setIsBulkMode(false);
+      // Trigger parent refresh
+      if (onTransactionDeleted) {
+        onTransactionDeleted();
+      }
+    } catch (err) {
+      console.error('Error deleting transactions:', err);
+      alert('Failed to delete some transactions');
+    }
+  };
+
+  const handleBulkCategoryChange = async (newCategory) => {
+    try {
+      await Promise.all(
+        Array.from(selectedIds).map(id => 
+          api.put(`/api/transactions/${id}`, { category: newCategory })
+        )
+      );
+      setSelectedIds(new Set());
+      setIsBulkMode(false);
+      // Trigger parent refresh
+      if (onTransactionDeleted) {
+        onTransactionDeleted();
+      }
+    } catch (err) {
+      console.error('Error updating categories:', err);
+      alert('Failed to update some transactions');
+    }
+  };
+
+  const handleBulkExport = () => {
+    const selectedTransactions = transactions.filter(t => selectedIds.has(t._id));
+    exportTransactionsToCSV(selectedTransactions, currency, 'selected_transactions');
+  };
+
+  const handleCancelBulk = () => {
+    setSelectedIds(new Set());
+    setIsBulkMode(false);
+  };
+
   return (
-    <table className="transactions-table">
-      {/* [UI UPDATE ADDED] Table header */}
-      <thead>
-        <tr>
-          <th className="col-date sortable-header" onClick={() => onSort('date')}>
-            Date{getSortIndicator('date')}
-          </th>
-          <th className="col-description">Description</th>
-          {/* [CAT-PAGE ADDED] Category column header */}
-          <th className="col-category sortable-header" onClick={() => onSort('category')}>
-            Category{getSortIndicator('category')}
-          </th>
-          <th className="col-type">Type</th>
-          <th className="col-amount sortable-header" onClick={() => onSort('amount')}>
-            Amount{getSortIndicator('amount')}
-          </th>
-          <th className="col-actions">Actions</th>
-        </tr>
-      </thead>
+    <div className="transaction-list">
+      {isBulkMode && selectedIds.size > 0 && (
+        <BulkActionsToolbar
+          selectedCount={selectedIds.size}
+          onBulkDelete={handleBulkDelete}
+          onBulkCategoryChange={handleBulkCategoryChange}
+          onBulkExport={handleBulkExport}
+          onCancel={handleCancelBulk}
+        />
+      )}
 
-      {/* [UI UPDATE ADDED] Table body with transaction rows */}
-      <tbody>
-        {transactions.map((transaction) => {
-          const dateString = transaction.date
-            ? new Date(transaction.date).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-              })
-            : 'Unknown';
+      <div className="transaction-list-header">
+        <h2>Transactions ({filteredAndSortedTransactions.length})</h2>
+        <button
+          onClick={() => setIsBulkMode(!isBulkMode)}
+          className={`btn-bulk-toggle ${isBulkMode ? 'active' : ''}`}
+        >
+          {isBulkMode ? 'Cancel Selection' : 'Select Multiple'}
+        </button>
+      </div>
+      
+      <div className="transaction-search-controls">
+        <input
+          type="text"
+          placeholder="Search by description or category..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="search-input"
+        />
+        <div className="transaction-controls">
+          <select 
+            value={filter} 
+            onChange={(e) => setFilter(e.target.value)}
+            className="filter-select"
+          >
+            <option value="all">All Types</option>
+            <option value="income">Income</option>
+            <option value="expense">Expense</option>
+          </select>
+          <select 
+            value={sortBy} 
+            onChange={(e) => setSortBy(e.target.value)}
+            className="sort-select"
+          >
+            <option value="date-desc">Newest First</option>
+            <option value="date-asc">Oldest First</option>
+            <option value="amount-desc">Highest Amount</option>
+            <option value="amount-asc">Lowest Amount</option>
+          </select>
+        </div>
+      </div>
 
-          const isIncome = transaction.type === 'income';
-          const amountClass = isIncome ? 'positive' : 'negative';
+      {filteredAndSortedTransactions.length === 0 ? (
+        <div className="empty-state">
+          <p>No transactions found</p>
+        </div>
+      ) : (
+        <>
+          {isBulkMode && (
+            <div className="bulk-select-all">
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.size === currentTransactions.length && currentTransactions.length > 0}
+                  onChange={handleSelectAll}
+                />
+                <span>Select All on Page</span>
+              </label>
+            </div>
+          )}
 
-          return (
-            <tr key={transaction._id} className="transaction-row">
-              {/* Date cell */}
-              <td className="col-date">{dateString}</td>
+          <div className="transactions">
+            {currentTransactions.map(transaction => (
+              <div key={transaction._id} className="transaction-wrapper">
+                {isBulkMode && (
+                  <div className="transaction-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(transaction._id)}
+                      onChange={() => handleSelectTransaction(transaction._id)}
+                    />
+                  </div>
+                )}
+                <TransactionItem
+                  transaction={transaction}
+                  onDelete={onTransactionDeleted}
+                  onEdit={onTransactionEdit}
+                />
+              </div>
+            ))}
+          </div>
 
-              {/* Description cell */}
-              <td className="col-description">{transaction.description}</td>
+          {totalPages > 1 && (
+            <div className="pagination">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="pagination-btn"
+              >
+                Previous
+              </button>
+              
+              <div className="pagination-info">
+                Page {currentPage} of {totalPages} ({filteredAndSortedTransactions.length} total)
+              </div>
 
-              {/* [CAT-PAGE ADDED] Category cell */}
-              <td className="col-category">{transaction.category || '—'}</td>
-
-              {/* Type badge cell */}
-              <td className="col-type">
-                <span className={`type-badge ${transaction.type}`}>
-                  {isIncome ? 'Income' : 'Expense'}
-                </span>
-              </td>
-
-              {/* Amount cell */}
-              <td className={`col-amount ${amountClass}`}>
-                {symbol}{formatAmount(transaction.amount)}
-              </td>
-
-              {/* Actions cell */}
-              <td className="col-actions">
-                <span className="action-link" onClick={() => onEdit(transaction)}>Edit</span>
-                <span className="action-separator">|</span>
-                <span className="action-link delete" onClick={() => onDelete(transaction._id)}>Delete</span>
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className="pagination-btn"
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </>
+      )}
+    </div>
   );
-};
+}
 
 export default TransactionList;
-

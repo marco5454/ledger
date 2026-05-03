@@ -1,51 +1,53 @@
-import { useContext } from 'react';
-import { AuthContext } from '../context/AuthContext.jsx';
-import { CURRENCY_SYMBOLS } from '../utils/constants.js';
+import { useMemo } from 'react';
 
-// Minimal formatter for adding commas to numbers
-const formatAmount = (amount) => {
-  if (amount == null) return '0.00';
-  return Number(amount).toLocaleString('en-US', { 
-    minimumFractionDigits: 2, 
-    maximumFractionDigits: 2 
-  });
-};
+function BalanceSummary({ transactions = [] }) {
+  const { totalIncome, totalExpenses, balance } = useMemo(() => {
+    // Ensure transactions is an array
+    const txArray = Array.isArray(transactions) ? transactions : [];
+    
+    const income = txArray
+      .filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + t.amount, 0);
+    
+    const expenses = txArray
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + t.amount, 0);
+    
+    return {
+      totalIncome: income,
+      totalExpenses: expenses,
+      balance: income - expenses
+    };
+  }, [transactions]);
 
-const BalanceSummary = ({ transactions }) => {
-  const { currency } = useContext(AuthContext);
-  const symbol = CURRENCY_SYMBOLS[currency] || '₱';
-
-  const totalIncome = transactions
-    .filter((transaction) => transaction.type === 'income')
-    .reduce((total, current) => total + current.amount, 0);
-
-  const totalExpenses = transactions
-    .filter((transaction) => transaction.type === 'expense')
-    .reduce((total, current) => total + current.amount, 0);
-
-  const netBalance = totalIncome - totalExpenses;
+  const formatAmount = (amount) => {
+    return amount.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  };
 
   return (
-    <div className="summary-card">
+    <div className="balance-summary">
       <h2>Balance Summary</h2>
-      <div className="summary-grid">
-        <div>
-          <h3>Total Income</h3>
-          <p className="positive">{symbol}{formatAmount(totalIncome)}</p>
+      <div className="balance-grid">
+        <div className="balance-item income">
+          <span className="label">Total Income</span>
+          <span className="amount">₱{formatAmount(totalIncome)}</span>
         </div>
-        <div>
-          <h3>Total Expenses</h3>
-          <p className="negative">{symbol}{formatAmount(totalExpenses)}</p>
+        <div className="balance-item expense">
+          <span className="label">Total Expenses</span>
+          <span className="amount">₱{formatAmount(totalExpenses)}</span>
         </div>
-        <div>
-          <h3>Net Balance</h3>
-          <p className={netBalance >= 0 ? 'positive' : 'negative'}>
-            {symbol}{formatAmount(netBalance)}
-          </p>
+        <div className="balance-item balance">
+          <span className="label">Current Balance</span>
+          <span className={`amount ${balance < 0 ? 'negative' : ''}`}>
+            ₱{formatAmount(balance)}
+          </span>
         </div>
       </div>
     </div>
   );
-};
+}
 
 export default BalanceSummary;

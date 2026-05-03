@@ -1,168 +1,68 @@
-// ============================================================
-// FILE: components/MonthlySummary.jsx
-// PURPOSE: Shows per-month breakdown of income, expenses,
-//          net balance, and transaction count for a given year
-// PHASE: Sort & Monthly Update
-// DEPENDENCIES: AuthContext (for currency), utils/constants
-// ============================================================
+import { useMemo } from 'react';
 
-import { useState, useContext } from 'react';
-import { AuthContext } from '../context/AuthContext.jsx';
-import { CURRENCY_SYMBOLS } from '../utils/constants.js';
+function MonthlySummary({ transactions = [] }) {
+  const currentMonth = useMemo(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  }, []);
 
-// FUNCTION: MonthlySummary()
-// PURPOSE: Renders a monthly breakdown table for selected year
-// PARAMS:
-//   transactions (array) — full transaction dataset
-//   currency (string)    — from AuthContext
-// RETURNS: Monthly summary section with table and year selector
-const MonthlySummary = ({ transactions }) => {
-  const { currency } = useContext(AuthContext);
-  const symbol = CURRENCY_SYMBOLS[currency] || '₱';
+  const { monthlyIncome, monthlyExpenses, monthlyBalance } = useMemo(() => {
+    // Ensure transactions is an array
+    const txArray = Array.isArray(transactions) ? transactions : [];
+    
+    const monthlyTransactions = txArray.filter(t => {
+      const transactionMonth = t.date.substring(0, 7);
+      return transactionMonth === currentMonth;
+    });
 
-  // Selected year — defaults to current year
-  const currentYear = new Date().getFullYear();
-  const [selectedYear, setSelectedYear] = useState(currentYear);
+    const income = monthlyTransactions
+      .filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + t.amount, 0);
+    
+    const expenses = monthlyTransactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + t.amount, 0);
 
-  // Early return if no transactions yet (loading state)
-  if (!transactions || !transactions.length) {
-    return (
-      <section className="monthly-summary-section">
-        <div className="monthly-summary-header">
-          <h3>Monthly Summary</h3>
-        </div>
-        <div className="loading-overlay">
-          <div className="spinner spinner-accent"></div>
-        </div>
-      </section>
-    );
-  }
+    return {
+      monthlyIncome: income,
+      monthlyExpenses: expenses,
+      monthlyBalance: income - expenses
+    };
+  }, [transactions, currentMonth]);
 
-  // FUNCTION: getAvailableYears()
-  // PURPOSE: Derives list of years from transactions dates
-  //          so year selector only shows years with data
-  // RETURNS: sorted array of unique years descending
-  //          Always includes current year even if no data yet
-  const getAvailableYears = () => {
-    const years = transactions.map(t =>
-      new Date(t.date).getFullYear()
-    );
-    const unique = [...new Set([...years, currentYear])];
-    return unique.sort((a, b) => b - a); // newest first
-  };
+  const monthName = useMemo(() => {
+    const date = new Date(currentMonth + '-01');
+    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  }, [currentMonth]);
 
-  // FUNCTION: getMonthlySummary()
-  // PURPOSE: Groups transactions by month for selectedYear
-  //          Calculates income, expenses, net, count per month
-  // RETURNS: array of 12 objects — one per month
-  //          Months with no transactions show zeros
-  const getMonthlySummary = () => {
-    const months = [
-      'January','February','March','April',
-      'May','June','July','August',
-      'September','October','November','December'
-    ];
-
-    return months.map((monthName, index) => {
-      // Filter transactions for this month and year
-      const monthTransactions = transactions.filter(t => {
-        const d = new Date(t.date);
-        return d.getFullYear() === selectedYear &&
-               d.getMonth() === index;
-      });
-
-      const income = monthTransactions
-        .filter(t => t.type === 'income')
-        .reduce((sum, t) => sum + t.amount, 0);
-
-      const expenses = monthTransactions
-        .filter(t => t.type === 'expense')
-        .reduce((sum, t) => sum + t.amount, 0);
-
-      return {
-        month:    monthName,
-        income,
-        expenses,
-        net:      income - expenses,
-        count:    monthTransactions.length
-      };
+  const formatAmount = (amount) => {
+    return amount.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
     });
   };
 
-  const monthlyData = getMonthlySummary();
-  const availableYears = getAvailableYears();
-
-  // Calculate year totals for footer
-  const yearTotals = monthlyData.reduce(
-    (totals, month) => ({
-      income: totals.income + month.income,
-      expenses: totals.expenses + month.expenses,
-      net: totals.net + month.net,
-      count: totals.count + month.count
-    }),
-    { income: 0, expenses: 0, net: 0, count: 0 }
-  );
-
   return (
-    <section className="monthly-summary-section">
-      <div className="monthly-summary-header">
-        <h3>Monthly Summary</h3>
-        <select
-          value={selectedYear}
-          onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-          className="year-selector"
-        >
-          {availableYears.map(year => (
-            <option key={year} value={year}>{year}</option>
-          ))}
-        </select>
+    <div className="monthly-summary">
+      <h2>Monthly Summary - {monthName}</h2>
+      <div className="balance-grid">
+        <div className="balance-item income">
+          <span className="label">Income</span>
+          <span className="amount">₱{formatAmount(monthlyIncome)}</span>
+        </div>
+        <div className="balance-item expense">
+          <span className="label">Expenses</span>
+          <span className="amount">₱{formatAmount(monthlyExpenses)}</span>
+        </div>
+        <div className="balance-item balance">
+          <span className="label">Net</span>
+          <span className={`amount ${monthlyBalance < 0 ? 'negative' : ''}`}>
+            ₱{formatAmount(monthlyBalance)}
+          </span>
+        </div>
       </div>
-
-      <div className="monthly-summary-table-container">
-        <table className="monthly-summary-table">
-          <thead>
-            <tr>
-              <th className="col-month">Month</th>
-              <th className="col-income">Income</th>
-              <th className="col-expenses">Expenses</th>
-              <th className="col-net">Net</th>
-              <th className="col-count">Transactions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {monthlyData.map((month, index) => (
-              <tr key={index}>
-                <td className="col-month">{month.month}</td>
-                <td className="col-income">
-                  {month.income > 0 ? `${symbol}${month.income.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
-                </td>
-                <td className="col-expenses">
-                  {month.expenses > 0 ? `${symbol}${month.expenses.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
-                </td>
-                <td className={`col-net ${month.net > 0 ? 'positive' : month.net < 0 ? 'negative' : 'zero'}`}>
-                  {month.net !== 0 ? `${symbol}${month.net.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
-                </td>
-                <td className="col-count">
-                  {month.count > 0 ? `${month.count} txn` : '—'}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr className="year-total-row">
-              <td className="col-month"><strong>Total {selectedYear}</strong></td>
-              <td className="col-income"><strong>{symbol}{yearTotals.income.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
-              <td className="col-expenses"><strong>{symbol}{yearTotals.expenses.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
-              <td className={`col-net ${yearTotals.net > 0 ? 'positive' : yearTotals.net < 0 ? 'negative' : 'zero'}`}>
-                <strong>{symbol}{yearTotals.net.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
-              </td>
-              <td className="col-count"><strong>{yearTotals.count} txn</strong></td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-    </section>
+    </div>
   );
-};
+}
 
 export default MonthlySummary;

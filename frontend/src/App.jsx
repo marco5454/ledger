@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext.jsx';
+import { ThemeProvider } from './context/ThemeContext.jsx';
 import Layout from './components/Layout.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
@@ -9,13 +10,18 @@ import AdminDashboard from './pages/AdminDashboard';
 import UserDetail from './pages/UserDetail';
 // [SETTINGS ADDED] Settings page import
 import Settings from './pages/Settings';
+// [RECURRING ADDED] Recurring transactions page import
+import RecurringTransactions from './pages/RecurringTransactions';
+// [BUDGET ADDED] Budget management page import
+import Budgets from './pages/Budgets';
 import AdminRoute from './components/AdminRoute';
 import ProtectedRoute from './components/ProtectedRoute';
 
 const App = () => {
   return (
-    <AuthProvider>
-      <BrowserRouter>
+    <ThemeProvider>
+      <AuthProvider>
+        <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
@@ -46,6 +52,15 @@ const App = () => {
             </AdminRoute>
           } />
 
+          {/* [RECURRING ADDED] Recurring transactions route — auth protected, user only */}
+          <Route path="/recurring" element={
+            <ProtectedRoute>
+              <Layout>
+                <RecurringTransactions />
+              </Layout>
+            </ProtectedRoute>
+          } />
+
           {/* [SETTINGS ADDED] Settings route — auth protected, user only */}
           <Route path="/settings" element={
             <ProtectedRoute>
@@ -55,10 +70,20 @@ const App = () => {
             </ProtectedRoute>
           } />
 
+          {/* [BUDGET ADDED] Budget management route — auth protected, user only */}
+          <Route path="/budgets" element={
+            <ProtectedRoute>
+              <Layout>
+                <Budgets />
+              </Layout>
+            </ProtectedRoute>
+          } />
+
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+        </BrowserRouter>
+      </AuthProvider>
+    </ThemeProvider>
   );
 };
 

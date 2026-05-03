@@ -9,6 +9,10 @@ const transactionRoutes = require('./routes/transactionRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 // [SETTINGS ADDED] User profile and settings routes
 const userRoutes = require('./routes/userRoutes');
+// [RECURRING ADDED] Recurring transaction routes
+const recurringRoutes = require('./routes/recurringRoutes');
+// [BUDGET ADDED] Budget management routes
+const budgetRoutes = require('./routes/budgetRoutes');
 
 dotenv.config();
 
@@ -26,6 +30,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/user', userRoutes); // [SETTINGS ADDED]
+app.use('/api/recurring', recurringRoutes); // [RECURRING ADDED]
+app.use('/api/budgets', budgetRoutes); // [BUDGET ADDED]
 
 //health of the server
 app.get('/api/health', (req, res) => {

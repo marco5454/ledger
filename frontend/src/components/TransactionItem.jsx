@@ -1,72 +1,60 @@
-// ============================================================
-// FILE: components/TransactionItem.jsx
-// PURPOSE: Renders one transaction as a table row (DEPRECATED)
-// PHASE: UI Update
-// NOTE: This component is no longer used — TransactionList now
-//       renders table rows directly. Kept for reference/future use.
-// ============================================================
-
 import { useContext } from 'react';
-import { AuthContext } from '../context/AuthContext.jsx';
-import { CURRENCY_SYMBOLS } from '../utils/constants.js';
+import { AuthContext } from '../context/AuthContext';
+import { CURRENCY_SYMBOLS } from '../utils/constants';
 
-// FUNCTION: TransactionItem()
-// PURPOSE: Legacy table row component — no longer used
-// PARAMS:
-//   transaction (object) — transaction to display
-//   onEdit (function)    — called when edit button clicked
-//   onDelete (function)  — called when delete button clicked
-// RETURNS: Table row <tr> element with transaction data
-// [UI UPDATE ADDED] Marked as deprecated — use TransactionList directly
-const TransactionItem = ({ transaction, onEdit, onDelete }) => {
+function TransactionItem({ transaction, onDelete, onEdit }) {
   const { currency } = useContext(AuthContext);
   const symbol = CURRENCY_SYMBOLS[currency] || '₱';
-  
-  const dateString = transaction.date
-    ? new Date(transaction.date).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      })
-    : 'Unknown';
-  
-  const isIncome = transaction.type === 'income';
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const formatAmount = (amount) => {
+    return Number(amount).toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  };
 
   return (
-    <tr className="transaction-row">
-      <td className="col-date">{dateString}</td>
-      <td className="col-description">{transaction.description}</td>
-      {/* [CAT-PAGE ADDED] Category cell */}
-      {/* Optional chaining handles old transactions with no category */}
-      <td className="col-category">{transaction.category || '—'}</td>
-      <td className="col-type">
-        <span className={`type-badge ${transaction.type}`}>
-          {isIncome ? 'Income' : 'Expense'}
-        </span>
-      </td>
-      <td className={`col-amount ${isIncome ? 'positive' : 'negative'}`}>
-        {symbol}{transaction.amount.toFixed(2)}
-      </td>
-      <td className="col-actions">
-        <button
-          type="button"
-          className="action-btn edit-btn"
-          onClick={() => onEdit(transaction)}
-          title="Edit transaction"
-        >
-          ✏️
-        </button>
-        <button
-          type="button"
-          className="action-btn delete-btn"
-          onClick={() => onDelete(transaction._id)}
-          title="Delete transaction"
-        >
-          🗑️
-        </button>
-      </td>
-    </tr>
+    <div className={`transaction-item ${transaction.type}`}>
+      <div className="transaction-info">
+        <div className="transaction-date">{formatDate(transaction.date)}</div>
+        <div className="transaction-description">{transaction.description}</div>
+        {transaction.category && (
+          <div className="transaction-category">{transaction.category}</div>
+        )}
+      </div>
+      <div className="transaction-details">
+        <div className={`transaction-amount ${transaction.type}`}>
+          {transaction.type === 'income' ? '+' : '-'}{symbol}{formatAmount(transaction.amount)}
+        </div>
+        <div className="transaction-actions">
+          <span
+            onClick={() => onEdit(transaction)}
+            className="action-link"
+            title="Edit transaction"
+          >
+            Edit
+          </span>
+          <span className="action-separator">|</span>
+          <span
+            onClick={() => onDelete(transaction._id)}
+            className="action-link delete"
+            title="Delete transaction"
+          >
+            Delete
+          </span>
+        </div>
+      </div>
+    </div>
   );
-};
+}
 
 export default TransactionItem;

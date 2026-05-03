@@ -110,3 +110,79 @@ export const exportTransactionsToCSV = (
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 };
+
+// FUNCTION: exportBudgetsToCSV()
+// PURPOSE: Converts budgets array to CSV string and triggers download
+// PARAMS:
+//   budgets (array) — list of budget objects with status
+//   month (string) — month in format "YYYY-MM"
+//   currency (string) — e.g. 'PHP', 'USD'
+//   filename (string) — optional, default 'budgets'
+// RETURNS: nothing — triggers browser file download
+export const exportBudgetsToCSV = (
+  budgets,
+  month,
+  currency,
+  filename = 'budgets'
+) => {
+  if (!budgets || budgets.length === 0) {
+    alert('No budgets to export.');
+    return;
+  }
+
+  const headers = [
+    'Category',
+    `Budget Amount (${currency})`,
+    `Spent (${currency})`,
+    `Remaining (${currency})`,
+    'Percentage Used',
+    'Status'
+  ];
+
+  const escapeCSVField = (field) => {
+    const str = String(field ?? '');
+    if (str.includes(',') || str.includes('\n') || str.includes('"')) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+  };
+
+  const rows = budgets.map(b => {
+    const remaining = b.amount - b.spent;
+    const percentage = b.amount > 0 ? ((b.spent / b.amount) * 100).toFixed(1) : '0.0';
+    const status = b.spent > b.amount ? 'Over Budget' : 
+                   b.spent >= b.amount * 0.9 ? 'Near Limit' : 'On Track';
+
+    return [
+      escapeCSVField(b.category),
+      escapeCSVField(b.amount.toFixed(2)),
+      escapeCSVField(b.spent.toFixed(2)),
+      escapeCSVField(remaining.toFixed(2)),
+      escapeCSVField(`${percentage}%`),
+      escapeCSVField(status)
+    ];
+  });
+
+  const csvContent = [
+    headers.join(','),
+    ...rows.map(row => row.join(','))
+  ].join('\n');
+
+  const blob = new Blob(
+    ['\uFEFF' + csvContent],
+    { type: 'text/csv;charset=utf-8;' }
+  );
+
+  const dateStamp = month || new Date().toISOString().slice(0, 7);
+  const fullFilename = `${filename}_${dateStamp}.csv`;
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', fullFilename);
+  document.body.appendChild(link);
+  link.click();
+
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};

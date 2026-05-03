@@ -6,7 +6,6 @@ import BalanceSummary from '../components/BalanceSummary.jsx';
 import TransactionForm from '../components/TransactionForm.jsx';
 import TransactionList from '../components/TransactionList.jsx';
 import Modal from '../components/Modal.jsx'; // [UI UPDATE ADDED]
-import '../styles/Dashboard.css'; // [UI UPDATE ADDED]
 // [CAT-PAGE ADDED]
 import { ALL_CATEGORIES, DEFAULT_PAGE_LIMIT } from '../utils/constants.js';
 // [SORT-MONTHLY ADDED]

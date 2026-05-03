@@ -3,7 +3,6 @@ import { useState, useEffect, useMemo, useContext } from 'react'; // [ADMIN SEAR
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/axios'; // [ADMIN SEARCH-SORT MODIFIED] Use named export
 import { AuthContext } from '../context/AuthContext';
-import '../styles/Dashboard.css';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();

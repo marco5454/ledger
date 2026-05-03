@@ -6,7 +6,6 @@
 // ============================================================
 
 import { useEffect } from 'react';
-import '../styles/Modal.css';
 
 // FUNCTION: Modal()
 // PURPOSE: Renders a centered overlay card on top of the page

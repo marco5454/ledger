@@ -9,7 +9,6 @@
 import { useState, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext.jsx';
 import { CURRENCY_SYMBOLS } from '../utils/constants.js';
-import '../styles/MonthlySummary.css';
 
 // FUNCTION: MonthlySummary()
 // PURPOSE: Renders a monthly breakdown table for selected year

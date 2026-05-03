@@ -8,7 +8,6 @@
 import { useContext } from 'react';
 import { AuthContext } from '../context/AuthContext.jsx';
 import { CURRENCY_SYMBOLS } from '../utils/constants.js';
-import '../styles/TransactionTable.css';
 
 // Minimal formatter for adding commas to numbers
 const formatAmount = (amount) => {

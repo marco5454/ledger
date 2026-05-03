@@ -211,3 +211,37 @@ exports.updateUserRole = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+
+// FUNCTION: getLatestRegistrations()
+// PURPOSE: Returns paginated list of latest registered users
+// PARAMS: page (query param, default 1), limit (query param, default 5)
+// RETURNS: { users, currentPage, totalPages, totalUsers, hasMore }
+// ACCESS: Admin only
+exports.getLatestRegistrations = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 5;
+    const skip = (page - 1) * limit;
+
+    const totalUsers = await User.countDocuments();
+    const users = await User.find()
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .select('fullName email createdAt');
+
+    res.json({
+      users,
+      currentPage: page,
+      totalPages: Math.ceil(totalUsers / limit),
+      totalUsers,
+      hasMore: skip + users.length < totalUsers
+    });
+  } catch (error) {
+    console.error('[getLatestRegistrations] Error:', error.message);
+    res.status(500).json({
+      message: 'Failed to load latest registrations',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};

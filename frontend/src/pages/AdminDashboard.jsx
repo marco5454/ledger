@@ -12,7 +12,9 @@ const AdminDashboard = () => {
     totalExpenses: 0,
   });
   const [users, setUsers] = useState([]);
-  const [latestUser, setLatestUser] = useState(null);
+  const [latestRegistrations, setLatestRegistrations] = useState([]);
+  const [registrationPage, setRegistrationPage] = useState(1);
+  const [registrationPagination, setRegistrationPagination] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -26,27 +28,26 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+  }, [registrationPage]);
 
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const [statsRes, usersRes] = await Promise.all([
+      const [statsRes, usersRes, registrationsRes] = await Promise.all([
         api.get('/api/admin/stats'),
         api.get('/api/admin/users'),
+        api.get(`/api/admin/latest-registrations?page=${registrationPage}&limit=5`)
       ]);
 
       setStats(statsRes.data);
       setUsers(usersRes.data.users || usersRes.data); // Handle both response formats
-
-      // Get latest registered user
-      const userArray = usersRes.data.users || usersRes.data;
-      if (userArray.length > 0) {
-        const sorted = [...userArray].sort(
-          (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-        );
-        setLatestUser(sorted[0]);
-      }
+      setLatestRegistrations(registrationsRes.data.users);
+      setRegistrationPagination({
+        currentPage: registrationsRes.data.currentPage,
+        totalPages: registrationsRes.data.totalPages,
+        totalUsers: registrationsRes.data.totalUsers,
+        hasMore: registrationsRes.data.hasMore
+      });
 
       setError('');
     } catch (err) {
@@ -208,20 +209,52 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-        {/* Latest Registration Card */}
-        {latestUser && (
-          <div className="latest-registration">
-            <h3>Latest Registration</h3>
-            <div className="user-info">
-              <p>
-                <strong>{latestUser.fullName}</strong> ({latestUser.email})
-              </p>
-              <p className="registration-date">
-                Joined: {new Date(latestUser.createdAt).toLocaleDateString()}
-              </p>
-            </div>
+        {/* Latest Registrations Section with Pagination */}
+        <div className="latest-registrations-section">
+          <h3>Latest Registrations</h3>
+          <div className="table-container">
+            <table className="users-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Registered</th>
+                </tr>
+              </thead>
+              <tbody>
+                {latestRegistrations.map(user => (
+                  <tr key={user._id}>
+                    <td>{user.fullName}</td>
+                    <td>{user.email}</td>
+                    <td>{new Date(user.createdAt).toLocaleDateString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        )}
+          {registrationPagination && registrationPagination.totalPages > 1 && (
+            <div className="pagination-controls">
+              <button
+                onClick={() => setRegistrationPage(prev => Math.max(1, prev - 1))}
+                disabled={registrationPage === 1}
+                className="btn-secondary"
+              >
+                Previous
+              </button>
+              <span className="pagination-info">
+                Page {registrationPagination.currentPage} of {registrationPagination.totalPages}
+                {' '}({registrationPagination.totalUsers} total users)
+              </span>
+              <button
+                onClick={() => setRegistrationPage(prev => prev + 1)}
+                disabled={!registrationPagination.hasMore}
+                className="btn-secondary"
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </div>
 
         {/* [ADMIN SEARCH-SORT MODIFIED] Users Table Section with Search */}
         <div className="users-section">

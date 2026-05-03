@@ -15,7 +15,8 @@ const {
   getAllUsers,
   getUserTransactions,
   getStats,            // [ADMIN UPDATE ADDED]
-  updateUserRole       // [ROLE SWITCH ADDED]
+  updateUserRole,      // [ROLE SWITCH ADDED]
+  getLatestRegistrations  // [PAGINATION ADDED]
 } = require('../controllers/adminController');
 
 const router = express.Router();
@@ -47,5 +48,11 @@ router.get('/stats', getStats);
 // ACCESS: Admin only
 // PURPOSE: Update a user's role between 'user' and 'admin'
 router.patch('/users/:id/role', updateUserRole);
+
+// [PAGINATION ADDED]
+// ROUTE: GET /api/admin/latest-registrations
+// ACCESS: Admin only
+// PURPOSE: Get paginated list of latest registered users
+router.get('/latest-registrations', getLatestRegistrations);
 
 module.exports = router;

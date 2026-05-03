@@ -1,7 +1,9 @@
 // ============================================================
 // FILE: pages/Register.jsx
-// PURPOSE: New user registration form with all updated fields
+// PURPOSE: New user registration form with modern 2-column layout
 // PHASE: Registration Update
+// LAST MODIFIED: May 3, 2026
+// CHANGES: - Redesigned to match login page with 2-column layout
 // ============================================================
 
 import { useState } from 'react';
@@ -16,38 +18,30 @@ const Register = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    currency: 'PHP'  // default selected
+    currency: 'PHP'
   });
-  const [errors, setErrors]       = useState({});
+  const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState('');
-  const [successMsg, setSuccessMsg]   = useState('');
-  const [isLoading, setIsLoading]     = useState(false);
-  const [showPassword, setShowPassword]        = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword]
-                                               = useState(false);
+  const [successMsg, setSuccessMsg] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // FUNCTION: validateForm()
-  // PURPOSE: Validates all fields before API call
-  // RETURNS: errors object — empty means valid
-  // NOTE: confirmPassword is validated here but never sent to API
   const validateForm = () => {
     const newErrors = {};
 
-    // fullName: required, min 2 chars
     if (!formData.fullName.trim()) {
       newErrors.fullName = 'Full name is required';
     } else if (formData.fullName.trim().length < 2) {
       newErrors.fullName = 'Full name must be at least 2 characters';
     }
 
-    // email: required, must contain @ and .
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
     } else if (!formData.email.includes('@') || !formData.email.includes('.')) {
       newErrors.email = 'Please enter a valid email address';
     }
 
-    // password: min 8 chars, 1 uppercase, 1 number
     if (!formData.password) {
       newErrors.password = 'Password is required';
     } else if (formData.password.length < 8) {
@@ -60,14 +54,12 @@ const Register = () => {
       }
     }
 
-    // confirmPassword: must match password exactly
     if (!formData.confirmPassword) {
       newErrors.confirmPassword = 'Please confirm your password';
     } else if (formData.confirmPassword !== formData.password) {
       newErrors.confirmPassword = 'Passwords do not match';
     }
 
-    // currency: must be one of CURRENCY_OPTIONS values
     if (!formData.currency || !CURRENCY_OPTIONS.some(opt => opt.value === formData.currency)) {
       newErrors.currency = 'Please select a currency';
     }
@@ -75,22 +67,11 @@ const Register = () => {
     return newErrors;
   };
 
-  // FUNCTION: handleSubmit()
-  // PURPOSE: Validates form, calls POST /api/auth/register,
-  //          shows success message, redirects to /login
-  // On success:
-  //   - Show: "Account created! Redirecting to login..."
-  //   - Wait 1500ms then navigate('/login')
-  // On error:
-  //   - If server returns errors array: show first error
-  //   - If email already exists: "This email is already registered."
-  //   - Generic fallback: "Registration failed. Please try again."
   const handleSubmit = async (event) => {
     event.preventDefault();
     setServerError('');
     setSuccessMsg('');
 
-    // Run frontend validation
     const validationErrors = validateForm();
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
@@ -101,13 +82,7 @@ const Register = () => {
     setIsLoading(true);
 
     try {
-      // [REG UPDATE IMPORTANT]
-      // confirmPassword is used for frontend validation only
-      // It is intentionally excluded from the API request body
-      // The backend never receives or stores confirmPassword
-      // Only send: { fullName, email, password, currency }
       const { confirmPassword, ...requestData } = formData;
-
       await api.post('/api/auth/register', requestData);
 
       setSuccessMsg('✅ Account created! Redirecting to login...');
@@ -126,134 +101,204 @@ const Register = () => {
     }
   };
 
-  // FUNCTION: handleChange()
-  // PURPOSE: Updates formData state and clears the error
-  //          for that specific field on every keystroke
-  // WHY: Clears error inline as user corrects their input
-  //      instead of waiting for them to resubmit
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    // Clear error for this field as user types
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
   };
 
   return (
-    <div className="page-container">
-      <h1>Create Account</h1>
-
-      {successMsg && (
-        <div className="success-message" style={{ color: 'green', marginBottom: '1rem' }}>
-          {successMsg}
-        </div>
-      )}
-
-      {serverError && (
-        <div className="error-message" style={{ color: 'red', marginBottom: '1rem' }}>
-          {serverError}
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="form-card">
-        {/* Full Name */}
-        <label>
-          Full Name
-          <input
-            type="text"
-            value={formData.fullName}
-            onChange={(e) => handleChange('fullName', e.target.value)}
-            disabled={isLoading}
-            required
-          />
-          {errors.fullName && <span className="field-error">{errors.fullName}</span>}
-        </label>
-
-        {/* Email */}
-        <label>
-          Email
-          <input
-            type="email"
-            value={formData.email}
-            onChange={(e) => handleChange('email', e.target.value)}
-            disabled={isLoading}
-            required
-          />
-          {errors.email && <span className="field-error">{errors.email}</span>}
-        </label>
-
-        {/* Password */}
-        <label>
-          Password
-          <div className="password-input-container">
-            <input
-              type={showPassword ? 'text' : 'password'}
-              value={formData.password}
-              onChange={(e) => handleChange('password', e.target.value)}
-              disabled={isLoading}
-              required
-            />
-            <button
-              type="button"
-              className="password-toggle"
-              onClick={() => setShowPassword(!showPassword)}
-              disabled={isLoading}
-            >
-              {showPassword ? '🙈' : '👁️'}
-            </button>
+    <div className="auth-page">
+      <div className="auth-container">
+        {/* Left Column - Logo/Branding */}
+        <div className="auth-left">
+          <div className="auth-branding">
+            <div className="logo-container">
+              <svg className="logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M19 3H5C3.89543 3 3 3.89543 3 5V19C3 20.1046 3.89543 21 5 21H19C20.1046 21 21 20.1046 21 19V5C21 3.89543 20.1046 3 19 3Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M7 7H17M7 12H17M7 17H13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <h1 className="brand-title">MyLedger</h1>
+            <p className="brand-tagline">Start managing your finances with clarity and confidence</p>
           </div>
-          {errors.password && <span className="field-error">{errors.password}</span>}
-        </label>
+        </div>
 
-        {/* Confirm Password */}
-        <label>
-          Confirm Password
-          <div className="password-input-container">
-            <input
-              type={showConfirmPassword ? 'text' : 'password'}
-              value={formData.confirmPassword}
-              onChange={(e) => handleChange('confirmPassword', e.target.value)}
-              disabled={isLoading}
-              required
-            />
-            <button
-              type="button"
-              className="password-toggle"
-              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              disabled={isLoading}
-            >
-              {showConfirmPassword ? '🙈' : '👁️'}
-            </button>
+        {/* Right Column - Registration Form */}
+        <div className="auth-right">
+          <div className="auth-form-container">
+            <div className="auth-header">
+              <h2>Create Account</h2>
+              <p className="auth-subtitle">Sign up to start tracking your finances</p>
+            </div>
+
+            {successMsg && <div className="success-message">{successMsg}</div>}
+            {serverError && <div className="error-message">{serverError}</div>}
+
+            <form onSubmit={handleSubmit} className="auth-form auth-form-compact">
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="fullName">Full Name</label>
+                  <input
+                    id="fullName"
+                    type="text"
+                    value={formData.fullName}
+                    onChange={(e) => handleChange('fullName', e.target.value)}
+                    placeholder="Enter your full name"
+                    disabled={isLoading}
+                    required
+                    autoComplete="name"
+                  />
+                  {errors.fullName && <span className="field-error">{errors.fullName}</span>}
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="email">Email Address</label>
+                  <input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => handleChange('email', e.target.value)}
+                    placeholder="Enter your email"
+                    disabled={isLoading}
+                    required
+                    autoComplete="email"
+                  />
+                  {errors.email && <span className="field-error">{errors.email}</span>}
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="password">Password</label>
+                  <div className="password-input-container">
+                    <input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      value={formData.password}
+                      onChange={(e) => handleChange('password', e.target.value)}
+                      placeholder="Create password"
+                      disabled={isLoading}
+                      required
+                      autoComplete="new-password"
+                    />
+                    <button
+                      type="button"
+                      className="password-toggle"
+                      onClick={() => setShowPassword(!showPassword)}
+                      disabled={isLoading}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? '🙈' : '👁️'}
+                    </button>
+                  </div>
+                  {errors.password && <span className="field-error">{errors.password}</span>}
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="confirmPassword">Confirm Password</label>
+                  <div className="password-input-container">
+                    <input
+                      id="confirmPassword"
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      value={formData.confirmPassword}
+                      onChange={(e) => handleChange('confirmPassword', e.target.value)}
+                      placeholder="Confirm password"
+                      disabled={isLoading}
+                      required
+                      autoComplete="new-password"
+                    />
+                    <button
+                      type="button"
+                      className="password-toggle"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      disabled={isLoading}
+                      aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showConfirmPassword ? '🙈' : '👁️'}
+                    </button>
+                  </div>
+                  {errors.confirmPassword && <span className="field-error">{errors.confirmPassword}</span>}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="currency">Preferred Currency</label>
+                <select
+                  id="currency"
+                  value={formData.currency}
+                  onChange={(e) => handleChange('currency', e.target.value)}
+                  disabled={isLoading}
+                  required
+                >
+                  {CURRENCY_OPTIONS.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                {errors.currency && <span className="field-error">{errors.currency}</span>}
+              </div>
+
+              <button 
+                type="submit" 
+                className={`btn-auth-primary ${isLoading ? 'loading' : ''}`}
+                disabled={isLoading}
+              >
+                Create Account
+              </button>
+            </form>
+
+            <div className="auth-footer-link">
+              <p>
+                Already have an account? <Link to="/login" className="auth-link">Sign in</Link>
+              </p>
+            </div>
           </div>
-          {errors.confirmPassword && <span className="field-error">{errors.confirmPassword}</span>}
-        </label>
+        </div>
+      </div>
 
-        {/* Currency */}
-        <label>
-          Currency
-          <select
-            value={formData.currency}
-            onChange={(e) => handleChange('currency', e.target.value)}
-            disabled={isLoading}
-            required
-          >
-            {CURRENCY_OPTIONS.map(option => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          {errors.currency && <span className="field-error">{errors.currency}</span>}
-        </label>
-
-        <button type="submit" disabled={isLoading}>
-          {isLoading ? 'Creating account...' : 'Create Account'}
-        </button>
-      </form>
-
-      <p>
-        Already have an account? <Link to="/login">Log in</Link>
-      </p>
+      {/* Minimalist Footer */}
+      <footer className="auth-page-footer">
+        <div className="footer-content">
+          <div className="footer-company">
+            <p className="company-name">M.M I.T Solutions</p>
+            <p className="copyright">© 2026 M.M I.T Solutions. All rights reserved.</p>
+          </div>
+          <div className="footer-contact">
+            <span className="contact-item">
+              <svg className="contact-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M22 16.92V19.92C22 20.4728 21.5523 20.92 21 20.92H3C2.44772 20.92 2 20.4728 2 19.92V16.92M16 11.92L12 15.92M12 15.92L8 11.92M12 15.92V3.92" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              00000000000
+            </span>
+            <a href="mailto:contact@mmitsolutions.com" className="contact-item" aria-label="Email">
+              <svg className="contact-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M3 8L10.89 13.26C11.2187 13.4793 11.6049 13.5963 12 13.5963C12.3951 13.5963 12.7813 13.4793 13.11 13.26L21 8M5 19H19C20.1046 19 21 18.1046 21 17V7C21 5.89543 20.1046 5 19 5H5C3.89543 5 3 5.89543 3 7V17C3 18.1046 3.89543 19 5 19Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </a>
+            <a href="https://messenger.com" target="_blank" rel="noopener noreferrer" className="contact-item" aria-label="Messenger">
+              <svg className="contact-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2C6.5 2 2 6.14 2 11.25C2 14.13 3.42 16.69 5.65 18.36V22L9.14 20.14C10.03 20.38 10.99 20.5 12 20.5C17.5 20.5 22 16.36 22 11.25C22 6.14 17.5 2 12 2ZM13.03 14.41L10.63 11.83L5.87 14.41L11.07 8.91L13.53 11.49L18.23 8.91L13.03 14.41Z" fill="currentColor"/>
+              </svg>
+            </a>
+            <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="contact-item" aria-label="LinkedIn">
+              <svg className="contact-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M16 8C17.5913 8 19.1174 8.63214 20.2426 9.75736C21.3679 10.8826 22 12.4087 22 14V21H18V14C18 13.4696 17.7893 12.9609 17.4142 12.5858C17.0391 12.2107 16.5304 12 16 12C15.4696 12 14.9609 12.2107 14.5858 12.5858C14.2107 12.9609 14 13.4696 14 14V21H10V14C10 12.4087 10.6321 10.8826 11.7574 9.75736C12.8826 8.63214 14.4087 8 16 8Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M6 9H2V21H6V9Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M4 6C5.10457 6 6 5.10457 6 4C6 2.89543 5.10457 2 4 2C2.89543 2 2 2.89543 2 4C2 5.10457 2.89543 6 4 6Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </a>
+            <a href="https://portfolio.com" target="_blank" rel="noopener noreferrer" className="contact-item" aria-label="Portfolio">
+              <svg className="contact-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2"/>
+                <path d="M12 3C14.5 6 16 9 16 12C16 15 14.5 18 12 21M12 3C9.5 6 8 9 8 12C8 15 9.5 18 12 21M3 12H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </a>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };

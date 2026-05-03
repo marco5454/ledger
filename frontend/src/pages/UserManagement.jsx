@@ -79,7 +79,9 @@ const UserManagement = () => {
       <div>
         <Navbar onLogout={logout} />
         <div className="page-container">
-          <p>Loading user management...</p>
+          <div className="loading-overlay">
+            <div className="loading-spinner-large"></div>
+          </div>
         </div>
       </div>
     );

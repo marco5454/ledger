@@ -1,45 +1,60 @@
 import { useContext } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext.jsx';
 
-const Navbar = ({ onLogout }) => {
-  // [SETTINGS MODIFIED] Read fullName from AuthContext
-  // fullName is stored in localStorage and loaded into context on start
-  // It updates immediately after user saves settings without re-login
-  const { role, fullName } = useContext(AuthContext);
+const Navbar = () => {
+  const { role, fullName, logout } = useContext(AuthContext);
   const navigate = useNavigate();
+  const location = useLocation();
 
-  // [SETTINGS MODIFIED] Display real name instead of generic label
-  // Show first word of fullName only to keep navbar clean
-  // Example: "Juan dela Cruz" displays as "Juan"
+  // Extract first name for display
   const displayName = fullName ? fullName.split(' ')[0] : 'User';
 
   const handleLogout = () => {
-    onLogout();
+    logout();
     navigate('/login');
+  };
+
+  // Helper function to check if route is active
+  const isActive = (path) => {
+    return location.pathname === path;
   };
 
   return (
     <header className="navbar">
-      <div>
+      <div className="navbar-brand">
         <h1>MyLedger</h1>
-        {/* [SETTINGS MODIFIED] — Show real user name instead of role label */}
-        {role && <p className="subtitle">Welcome, {displayName}!</p>}
+        <p className="subtitle">Welcome, {displayName}!</p>
       </div>
-      <nav>
-        {/* [PHASE 2 ADDED] — Conditional nav links based on role */}
-        {/* Admin sees admin dashboard link, user sees only their dashboard */}
+      <nav className="navbar-nav">
         {role === 'admin' ? (
-          <Link to="/admin/dashboard">Admin Dashboard</Link>
+          <>
+            <Link 
+              to="/admin/dashboard" 
+              className={`nav-link ${isActive('/admin/dashboard') ? 'active' : ''}`}
+            >
+              Admin Dashboard
+            </Link>
+          </>
         ) : (
           <>
-            <Link to="/dashboard">Dashboard</Link>
-            {/* [SETTINGS ADDED] Settings navigation link — users only */}
-            {/* Admins manage settings differently — not needed in admin nav */}
-            <Link to="/settings">Settings</Link>
+            <Link 
+              to="/dashboard" 
+              className={`nav-link ${isActive('/dashboard') ? 'active' : ''}`}
+            >
+              Dashboard
+            </Link>
+            <Link 
+              to="/settings" 
+              className={`nav-link ${isActive('/settings') ? 'active' : ''}`}
+            >
+              Settings
+            </Link>
           </>
         )}
-        <button onClick={handleLogout}>Logout</button>
+        <button onClick={handleLogout} className="btn-logout">
+          Logout
+        </button>
       </nav>
     </header>
   );

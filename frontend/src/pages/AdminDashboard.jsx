@@ -1,12 +1,10 @@
 // [ADMIN SEARCH-SORT MODIFIED]
-import { useState, useEffect, useMemo, useContext } from 'react'; // [ADMIN SEARCH-SORT ADDED] useMemo
+import { useState, useEffect, useMemo } from 'react'; // [ADMIN SEARCH-SORT ADDED] useMemo
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/axios'; // [ADMIN SEARCH-SORT MODIFIED] Use named export
-import { AuthContext } from '../context/AuthContext';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const { logout } = useContext(AuthContext);
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalTransactions: 0,
@@ -180,18 +178,10 @@ const AdminDashboard = () => {
     );
   }
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
-
   return (
     <div className="dashboard-container">
       <div className="admin-header">
         <h1>Admin Dashboard</h1>
-        <button onClick={handleLogout} className="admin-logout-btn">
-          Logout
-        </button>
       </div>
 
       {/* Stats Cards */}

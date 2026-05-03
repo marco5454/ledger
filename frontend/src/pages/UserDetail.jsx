@@ -5,17 +5,14 @@
 // DEPENDENCIES: axios instance, AuthContext, React Router useParams
 // ============================================================
 
-import { useContext, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api/axios.js';
-import { AuthContext } from '../context/AuthContext.jsx';
 import { CURRENCY_SYMBOLS } from '../utils/constants.js';
-import Navbar from '../components/Navbar.jsx';
 
 const UserDetail = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  const { logout } = useContext(AuthContext);
   const [user, setUser] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -43,25 +40,19 @@ const UserDetail = () => {
 
   if (loading) {
     return (
-      <div>
-        <Navbar onLogout={logout} />
-        <div className="page-container">
-          <p>Loading user details...</p>
-        </div>
+      <div className="page-container">
+        <p>Loading user details...</p>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div>
-        <Navbar onLogout={logout} />
-        <div className="page-container">
-          <p className="error-message">{error || 'User not found.'}</p>
-          <button onClick={() => navigate('/admin/dashboard')} className="btn-primary">
-            Back to Dashboard
-          </button>
-        </div>
+      <div className="page-container">
+        <p className="error-message">{error || 'User not found.'}</p>
+        <button onClick={() => navigate('/admin/dashboard')} className="btn-primary">
+          Back to Dashboard
+        </button>
       </div>
     );
   }
@@ -81,7 +72,6 @@ const UserDetail = () => {
 
   return (
     <div className="user-detail">
-      <Navbar onLogout={logout} />
       <main className="page-container">
         {/* Back button */}
         <button

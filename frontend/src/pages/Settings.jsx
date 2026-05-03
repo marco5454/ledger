@@ -9,10 +9,9 @@ import { useContext, useEffect, useState } from 'react';
 import { api } from '../api/axios.js';
 import { AuthContext } from '../context/AuthContext.jsx';
 import { CURRENCY_OPTIONS, SETTINGS_TABS } from '../utils/constants.js';
-import Navbar from '../components/Navbar.jsx';
 
 const Settings = () => {
-  const { logout, fullName, currency, updateUserContext } = useContext(AuthContext);
+  const { fullName, currency, updateUserContext } = useContext(AuthContext);
 
   const [activeTab, setActiveTab] = useState(SETTINGS_TABS.PROFILE);
   const [profileForm, setProfileForm] = useState({
@@ -185,8 +184,6 @@ const Settings = () => {
 
   return (
     <div className="settings-page">
-      <Navbar onLogout={logout} />
-
       <main className="page-container">
         <h1>Account Settings</h1>
 

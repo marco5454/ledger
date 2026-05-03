@@ -1,7 +1,6 @@
 import { useCallback, useContext, useEffect, useState, useMemo } from 'react';
 import { api } from '../api/axios.js';
 import { AuthContext } from '../context/AuthContext.jsx';
-import Navbar from '../components/Navbar.jsx';
 import BalanceSummary from '../components/BalanceSummary.jsx';
 import TransactionForm from '../components/TransactionForm.jsx';
 import TransactionList from '../components/TransactionList.jsx';
@@ -15,7 +14,7 @@ import { exportTransactionsToCSV } from '../utils/exportCSV';
 
 const Dashboard = () => {
   // [SETTINGS MODIFIED] Read fullName and currency from context
-  const { logout, fullName, currency } = useContext(AuthContext);
+  const { fullName, currency } = useContext(AuthContext);
   const [transactions, setTransactions] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -265,8 +264,6 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard-page">
-      <Navbar onLogout={logout} />
-      
       {/* [UI UPDATE ADDED] Top bar with welcome and add button */}
       <div className="dashboard-top-bar">
         <div className="welcome-section">

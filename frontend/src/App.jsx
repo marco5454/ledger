@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext.jsx';
+import Layout from './components/Layout.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
 import Dashboard from './pages/Dashboard.jsx';
@@ -22,26 +23,36 @@ const App = () => {
             path="/dashboard"
             element={
               <ProtectedRoute>
-                <Dashboard />
+                <Layout>
+                  <Dashboard />
+                </Layout>
               </ProtectedRoute>
             }
           />
           {/* [PHASE 2 ADDED] — New admin routes below existing routes */}
           <Route path="/admin/dashboard" element={
             <AdminRoute>
-              <AdminDashboard />
+              <Layout>
+                <AdminDashboard />
+              </Layout>
             </AdminRoute>
           } />
 
           <Route path="/admin/users/:id" element={
             <AdminRoute>
-              <UserDetail />
+              <Layout>
+                <UserDetail />
+              </Layout>
             </AdminRoute>
           } />
 
           {/* [SETTINGS ADDED] Settings route — auth protected, user only */}
           <Route path="/settings" element={
-            <ProtectedRoute><Settings /></ProtectedRoute>
+            <ProtectedRoute>
+              <Layout>
+                <Settings />
+              </Layout>
+            </ProtectedRoute>
           } />
 
           <Route path="*" element={<Navigate to="/login" replace />} />
